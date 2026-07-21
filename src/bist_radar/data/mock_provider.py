@@ -10,10 +10,6 @@ from bist_radar.data.provider import MarketDataProvider
 class MockMarketDataProvider(MarketDataProvider):
     """Mock implementation of the market data provider."""
 
-    def get_symbols(self) -> list[str]:
-        """Return a fixed list of symbols."""
-        return ["THYAO", "TUPRS", "ASELS"]
-
     def get_history(
         self,
         symbol: str,
