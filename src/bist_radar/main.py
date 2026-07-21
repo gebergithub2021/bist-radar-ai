@@ -8,6 +8,7 @@ from bist_radar.data import provider
 from datetime import date, timedelta
 from bist_radar.data.yahoo_provider import YahooFinanceProvider
 from bist_radar.indicators.sma import calculate_sma
+from bist_radar.indicators.ema import calculate_ema
 
 
 def main() -> None:
@@ -42,11 +43,21 @@ def main() -> None:
     end,
     )
     print(df.head())
-    print(df.columns)
     print()
 
-    df.info()
     df["SMA20"] = calculate_sma(df, 20)
     print(df[["Date", "Close", "SMA20"]].tail())
+    df["EMA20"] = calculate_ema(df, 20)
+
+    print(
+    df[
+        [
+            "Date",
+            "Close",
+            "SMA20",
+            "EMA20",
+        ]
+    ].tail()
+    )
 if __name__ == "__main__":
     main()
