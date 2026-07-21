@@ -7,6 +7,7 @@ from bist_radar.core.logging import configure_logging
 from bist_radar.data import provider
 from datetime import date, timedelta
 from bist_radar.data.yahoo_provider import YahooFinanceProvider
+from bist_radar.indicators.sma import calculate_sma
 
 
 def main() -> None:
@@ -45,6 +46,7 @@ def main() -> None:
     print()
 
     df.info()
-
+    df["SMA20"] = calculate_sma(df, 20)
+    print(df[["Date", "Close", "SMA20"]].tail())
 if __name__ == "__main__":
     main()
