@@ -9,6 +9,7 @@ from datetime import date, timedelta
 from bist_radar.data.yahoo_provider import YahooFinanceProvider
 from bist_radar.indicators.sma import calculate_sma
 from bist_radar.indicators.ema import calculate_ema
+from bist_radar.indicators.rsi import calculate_rsi
 
 
 def main() -> None:
@@ -59,5 +60,20 @@ def main() -> None:
         ]
     ].tail()
     )
+    
+    df["RSI14"] = calculate_rsi(df)
+
+    print(
+    df[
+        [
+            "Date",
+            "Close",
+            "SMA20",
+            "EMA20",
+            "RSI14",
+        ]
+    ].tail()
+)
+    
 if __name__ == "__main__":
     main()
