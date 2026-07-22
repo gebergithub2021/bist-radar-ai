@@ -10,6 +10,7 @@ from bist_radar.data.yahoo_provider import YahooFinanceProvider
 from bist_radar.indicators.sma import calculate_sma
 from bist_radar.indicators.ema import calculate_ema
 from bist_radar.indicators.rsi import calculate_rsi
+from bist_radar.indicators.macd import calculate_macd
 
 
 def main() -> None:
@@ -71,6 +72,23 @@ def main() -> None:
             "SMA20",
             "EMA20",
             "RSI14",
+        ]
+    ].tail()
+)
+    macd_df = calculate_macd(df)
+    df = df.join(macd_df)
+
+    print(
+    df[
+        [
+            "Date",
+            "Close",
+            "SMA20",
+            "EMA20",
+            "RSI14",
+            "MACD",
+            "Signal",
+            "Histogram",
         ]
     ].tail()
 )
