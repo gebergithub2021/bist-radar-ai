@@ -11,6 +11,12 @@ from bist_radar.indicators.sma import calculate_sma
 from bist_radar.indicators.ema import calculate_ema
 from bist_radar.indicators.rsi import calculate_rsi
 from bist_radar.indicators.macd import calculate_macd
+from bist_radar.scanner.rules import (
+    is_above_sma20,
+    is_rsi_above_50,
+    is_macd_bullish,
+    passes_basic_strategy,
+)
 
 
 def main() -> None:
@@ -92,6 +98,24 @@ def main() -> None:
         ]
     ].tail()
 )
-    
+    print("\nScanner Sonucu")
+
+    print(
+    "Close > SMA20:",
+    is_above_sma20(df),
+)
+
+    print(
+    "RSI14 > 50:",
+    is_rsi_above_50(df),
+)
+    print(
+    "MACD > Signal:",
+    is_macd_bullish(df),
+)
+    print(
+    "Basic Strategy:",
+    passes_basic_strategy(df),
+)
 if __name__ == "__main__":
     main()

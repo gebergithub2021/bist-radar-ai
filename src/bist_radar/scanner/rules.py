@@ -1,0 +1,42 @@
+"""Scanning rules."""
+
+import pandas as pd
+
+
+def is_above_sma20(df: pd.DataFrame) -> bool:
+    """
+    Return True if the latest close is above SMA20.
+    """
+
+    latest = df.iloc[-1]
+
+    return latest["Close"] > latest["SMA20"]
+
+def is_rsi_above_50(df: pd.DataFrame) -> bool:
+    """
+    Return True if the latest RSI14 is above 50.
+    """
+
+    latest = df.iloc[-1]
+
+    return latest["RSI14"] > 50
+
+def is_macd_bullish(df: pd.DataFrame) -> bool:
+    """
+    Return True if MACD is above Signal.
+    """
+
+    latest = df.iloc[-1]
+
+    return latest["MACD"] > latest["Signal"]
+
+def passes_basic_strategy(df: pd.DataFrame) -> bool:
+    """
+    Return True if the stock passes the basic strategy.
+    """
+
+    return (
+        is_above_sma20(df)
+        and is_rsi_above_50(df)
+        and is_macd_bullish(df)
+    )
