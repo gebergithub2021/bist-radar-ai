@@ -163,3 +163,53 @@ def test_get_scan_results_returns_results_for_all_symbols():
     assert results[1].symbol == "FAIL"
     assert results[1].score < 3
     assert not results[1].passed
+
+def test_get_ranked_scan_results_sorts_by_weighted_score_descending():
+    """Results should be sorted from highest to lowest weighted score."""
+
+    class RankedProvider(FakeProvider):
+        def get_history(
+            self,
+            symbol: str,
+            start,
+            end,
+        ) -> pd.DataFrame:
+            if symbol == "STRONG":
+                return pd.DataFrame(
+                    {
+                        "Close": list(range(100, 140)),
+                    }
+                )
+
+            if symbol == "WEAK":
+                return pd.DataFrame(
+                    {
+                        "Close": list(range(100, 120))
+                        + list(range(120, 100, -1)),
+                    }
+                )
+
+            return pd.DataFrame(
+                {
+                    "Close": list(range(140, 100, -1)),
+                }
+            )
+
+    provider = RankedProvider()
+    engine = ScannerEngine(provider)
+
+    results = engine.get_ranked_scan_results(
+        ["FAIL", "WEAK", "STRONG"],
+        None,
+        None,
+    )
+
+    scores = [
+        result.weighted_score
+        for result in results
+    ]
+
+    assert scores == sorted(
+        scores,
+        reverse=True,
+    )

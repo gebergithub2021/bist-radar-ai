@@ -66,6 +66,26 @@ class ScannerEngine:
             histogram=float(latest["Histogram"]),
         )
 
+    def get_ranked_scan_results(
+        self,
+        symbols: list[str],
+        start,
+        end,
+    ) -> list[ScanResult]:
+        """Return scan results sorted by weighted score descending."""
+
+        results = self.get_scan_results(
+            symbols,
+            start,
+            end,
+        )
+
+        return sorted(
+            results,
+            key=lambda result: result.weighted_score,
+            reverse=True,
+        )
+    
     def scan_symbols(
         self,
         symbols: list[str],

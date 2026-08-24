@@ -199,3 +199,61 @@ def test_macd_score_returns_40_for_very_strong_histogram():
     )
 
     assert result.macd_score == 40
+
+def test_rating_returns_strong_for_high_score():
+    result = ScanResult(
+        symbol="TEST",
+        above_sma20=True,
+        rsi_above_50=True,
+        macd_bullish=True,
+        close=100,
+        sma20=94,
+        rsi14=65,
+        histogram=0.6,
+    )
+
+    assert result.weighted_score == 100
+    assert result.rating == "STRONG"
+def test_rating_returns_pass_for_medium_high_score():
+    result = ScanResult(
+        symbol="TEST",
+        above_sma20=True,
+        rsi_above_50=True,
+        macd_bullish=True,
+        close=103,
+        sma20=100,
+        rsi14=55,
+        histogram=0.15,
+    )
+
+    assert result.rating == "PASS"
+
+
+def test_rating_returns_watch_for_medium_score():
+    result = ScanResult(
+        symbol="TEST",
+        above_sma20=True,
+        rsi_above_50=True,
+        macd_bullish=True,
+        close=103,
+        sma20=100,
+        rsi14=47,
+        histogram=0.15,
+    )
+
+    assert result.rating == "WATCH"
+
+
+def test_rating_returns_fail_for_low_score():
+    result = ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        close=98,
+        sma20=100,
+        rsi14=40,
+        histogram=-0.2,
+    )
+
+    assert result.rating == "FAIL"

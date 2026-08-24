@@ -113,3 +113,19 @@ class ScanResult:
             return 30
 
         return 15
+    @property
+    def rating(self) -> str:
+        """Return rating based on weighted score."""
+
+        score = self.weighted_score
+
+        if score >= 80:
+            return "STRONG"
+
+        if score >= 60:
+            return "PASS"
+
+        if score >= 40:
+            return "WATCH"
+
+        return "FAIL"

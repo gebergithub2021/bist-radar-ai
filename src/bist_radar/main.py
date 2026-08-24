@@ -116,7 +116,7 @@ def main() -> None:
     print("Taranan hisseler:", symbols)
     print("Geçen hisseler:", passed_symbols)
 
-    detailed_results = engine.get_scan_results(
+    detailed_results = engine.get_ranked_scan_results(
     symbols=symbols,
     start=start,
     end=end,
@@ -125,7 +125,7 @@ def main() -> None:
     print("\nDetaylı Tarama Sonuçları")
 
     for result in detailed_results:
-        status = "PASS" if result.passed else "FAIL"
+        status = result.rating
 
         sma_status = "✓" if result.above_sma20 else "✗"
         rsi_status = "✓" if result.rsi_above_50 else "✗"
@@ -133,12 +133,11 @@ def main() -> None:
 
         print(
             f"{result.symbol:<6} "
-            f"SMA:{sma_status} "
-            f"RSI:{rsi_status} "
-            f"MACD:{macd_status} "
-            f"{result.score}/3 "
-            f"{result.weighted_score}/100 "
-            f"{status}"
+            f"SMA:{result.sma_score:>2}/30 "
+            f"RSI:{result.rsi_score:>2}/30 "
+            f"MACD:{result.macd_score:>2}/40 "
+            f"TOTAL:{result.weighted_score:>3}/100 "
+            f"{result.rating}"
         )
 
 if __name__ == "__main__":
