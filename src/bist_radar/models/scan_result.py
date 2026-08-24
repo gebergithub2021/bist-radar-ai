@@ -24,6 +24,23 @@ class ScanResult:
         )
 
     @property
+    def weighted_score(self) -> int:
+        """Return weighted score out of 100."""
+
+        score = 0
+
+        if self.above_sma20:
+            score += 30
+
+        if self.rsi_above_50:
+            score += 30
+
+        if self.macd_bullish:
+            score += 40
+
+        return score
+
+    @property
     def passed(self) -> bool:
         """Return True when all rules pass."""
         return self.score == 3

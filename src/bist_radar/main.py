@@ -126,10 +126,19 @@ def main() -> None:
 
     for result in detailed_results:
         status = "PASS" if result.passed else "FAIL"
+
+        sma_status = "✓" if result.above_sma20 else "✗"
+        rsi_status = "✓" if result.rsi_above_50 else "✗"
+        macd_status = "✓" if result.macd_bullish else "✗"
+
         print(
-        f"{result.symbol:<6} "
-        f"{result.score}/3 "
-        f"{status}"
+            f"{result.symbol:<6} "
+            f"SMA:{sma_status} "
+            f"RSI:{rsi_status} "
+            f"MACD:{macd_status} "
+            f"{result.score}/3 "
+            f"{result.weighted_score}/100 "
+            f"{status}"
         )
 
 if __name__ == "__main__":
