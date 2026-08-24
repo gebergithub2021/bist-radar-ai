@@ -136,3 +136,66 @@ def test_rsi_score_returns_15_at_or_above_70():
     )
 
     assert result.rsi_score == 15
+def test_macd_score_returns_zero_when_histogram_is_negative():
+    result = ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        close=100,
+        histogram=-0.5,
+    )
+
+    assert result.macd_score == 0
+
+
+def test_macd_score_returns_10_for_weak_positive_histogram():
+    result = ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=True,
+        close=100,
+        histogram=0.05,
+    )
+
+    assert result.macd_score == 10
+
+
+def test_macd_score_returns_20_for_moderate_histogram():
+    result = ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=True,
+        close=100,
+        histogram=0.15,
+    )
+
+    assert result.macd_score == 20
+
+
+def test_macd_score_returns_30_for_strong_histogram():
+    result = ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=True,
+        close=100,
+        histogram=0.30,
+    )
+
+    assert result.macd_score == 30
+
+
+def test_macd_score_returns_40_for_very_strong_histogram():
+    result = ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=True,
+        close=100,
+        histogram=0.60,
+    )
+
+    assert result.macd_score == 40
