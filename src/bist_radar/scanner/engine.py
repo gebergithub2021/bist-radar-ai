@@ -20,10 +20,12 @@ class ScannerEngine:
         """Scan a single symbol."""
 
         df = self.provider.get_history(
-            symbol,
-            start,
-            end,
+        symbol,
+        start,
+        end,
         )
+
+        df = add_indicators(df)
 
         return passes_basic_strategy(df)
 
