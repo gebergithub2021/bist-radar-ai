@@ -51,11 +51,19 @@ class ScannerEngine:
 
         df = add_indicators(df)
 
+        latest = df.iloc[-1]
+
         return ScanResult(
             symbol=symbol,
             above_sma20=bool(is_above_sma20(df)),
             rsi_above_50=bool(is_rsi_above_50(df)),
             macd_bullish=bool(is_macd_bullish(df)),
+            close=float(latest["Close"]),
+            sma20=float(latest["SMA20"]),
+            rsi14=float(latest["RSI14"]),
+            macd=float(latest["MACD"]),
+            signal=float(latest["Signal"]),
+            histogram=float(latest["Histogram"]),
         )
 
     def scan_symbols(
