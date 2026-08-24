@@ -69,7 +69,32 @@ class ScannerEngine:
         passed_symbols = []
 
         for symbol in symbols:
-            if self.scan_symbol(symbol, start, end):
+            if self.scan_symbol(
+                symbol,
+                start,
+                end,
+            ):
                 passed_symbols.append(symbol)
 
         return passed_symbols
+
+    def get_scan_results(
+        self,
+        symbols: list[str],
+        start,
+        end,
+    ) -> list[ScanResult]:
+        """Return detailed scan results for multiple symbols."""
+
+        results = []
+
+        for symbol in symbols:
+            result = self.get_scan_result(
+                symbol,
+                start,
+                end,
+            )
+
+            results.append(result)
+
+        return results

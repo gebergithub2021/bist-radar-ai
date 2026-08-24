@@ -116,6 +116,21 @@ def main() -> None:
     print("Taranan hisseler:", symbols)
     print("Geçen hisseler:", passed_symbols)
 
+    detailed_results = engine.get_scan_results(
+    symbols=symbols,
+    start=start,
+    end=end,
+    )
+
+    print("\nDetaylı Tarama Sonuçları")
+
+    for result in detailed_results:
+        status = "PASS" if result.passed else "FAIL"
+        print(
+        f"{result.symbol:<6} "
+        f"{result.score}/3 "
+        f"{status}"
+        )
 
 if __name__ == "__main__":
     main()

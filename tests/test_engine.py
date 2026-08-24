@@ -122,3 +122,44 @@ def test_get_scan_result_returns_detailed_result():
     assert result.macd_bullish
     assert result.score == 3
     assert result.passed
+def test_get_scan_results_returns_results_for_all_symbols():
+    """Detailed scan results should be returned for all symbols."""
+
+    class MixedProvider(FakeProvider):
+        def get_history(
+            self,
+            symbol: str,
+            start,
+            end,
+        ) -> pd.DataFrame:
+            if symbol == "PASS":
+                return pd.DataFrame(
+                    {
+                        "Close": list(range(100, 140)),
+                    }
+                )
+
+            return pd.DataFrame(
+                {
+                    "Close": list(range(140, 100, -1)),
+                }
+            )
+
+    provider = MixedProvider()
+    engine = ScannerEngine(provider)
+
+    results = engine.get_scan_results(
+        ["PASS", "FAIL"],
+        None,
+        None,
+    )
+
+    assert len(results) == 2
+
+    assert results[0].symbol == "PASS"
+    assert results[0].score == 3
+    assert results[0].passed
+
+    assert results[1].symbol == "FAIL"
+    assert results[1].score < 3
+    assert not results[1].passed
