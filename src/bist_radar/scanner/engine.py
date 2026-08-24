@@ -2,6 +2,7 @@
 
 from bist_radar.data.provider import MarketDataProvider
 from bist_radar.scanner.rules import passes_basic_strategy
+from bist_radar.indicators.calculator import add_indicators
 
 
 class ScannerEngine:
