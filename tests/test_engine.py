@@ -71,3 +71,44 @@ def test_scan_symbol_returns_false_when_strategy_fails():
     )
 
     assert not result
+def test_scan_symbols_returns_only_matching_symbols():
+    """Only symbols that pass the strategy should be returned."""
+
+    class MixedProvider(FakeProvider):
+        def get_history(
+            self,
+            symbol: str,
+            start,
+            end,
+        ) -> pd.DataFrame:
+            if symbol == "PASS":
+                return pd.DataFrame(
+                    {
+                        "Close": [100],
+                        "SMA20": [90],
+                        "RSI14": [60],
+                        "MACD": [2.5],
+                        "Signal": [1.5],
+                    }
+                )
+
+            return pd.DataFrame(
+                {
+                    "Close": [80],
+                    "SMA20": [90],
+                    "RSI14": [45],
+                    "MACD": [1.0],
+                    "Signal": [1.5],
+                }
+            )
+
+    provider = MixedProvider()
+    engine = ScannerEngine(provider)
+
+    result = engine.scan_symbols(
+        ["PASS", "FAIL"],
+        None,
+        None,
+    )
+
+    assert result == ["PASS"]
