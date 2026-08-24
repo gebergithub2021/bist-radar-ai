@@ -43,7 +43,24 @@ def test_export_scan_results_to_csv(tmp_path: Path):
 
     assert output_path.exists()
 
-    df = pd.read_csv(output_path)
+    df = pd.read_csv(
+        output_path,
+        sep= ";"
+    )
+    assert list(df.columns) == [
+    "Symbol",
+    "Close",
+    "SMA20",
+    "RSI14",
+    "MACD",
+    "Signal",
+    "Histogram",
+    "SMA Score",
+    "RSI Score",
+    "MACD Score",
+    "Total Score",
+    "Rating",
+    ]
 
     assert list(df["Symbol"]) == ["AAA", "BBB"]
     assert list(df["Total Score"]) == [100, 0]
