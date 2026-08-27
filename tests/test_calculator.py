@@ -10,14 +10,22 @@ def test_add_indicators_adds_expected_columns():
 
     df = pd.DataFrame(
         {
-            "Close": [
-                100, 101, 102, 103, 104,
-                105, 106, 107, 108, 109,
-                110, 111, 112, 113, 114,
-                115, 116, 117, 118, 119,
-                120, 121, 122, 123, 124,
-                125, 126, 127, 128, 129,
-            ]
+        "Close": [
+            100, 101, 102, 103, 104,
+            105, 106, 107, 108, 109,
+            110, 111, 112, 113, 114,
+            115, 116, 117, 118, 119,
+            120, 121, 122, 123, 124,
+            125, 126, 127, 128, 129,
+            ],
+        "Volume": [
+            1000, 1100, 1200, 1300, 1400,
+            1500, 1600, 1700, 1800, 1900,
+            2000, 2100, 2200, 2300, 2400,
+            2500, 2600, 2700, 2800, 2900,
+            3000, 3100, 3200, 3300, 3400,
+            3500, 3600, 3700, 3800, 3900,
+            ],
         }
     )
 
@@ -29,3 +37,5 @@ def test_add_indicators_adds_expected_columns():
     assert "MACD" in result.columns
     assert "Signal" in result.columns
     assert "Histogram" in result.columns
+    assert "VolumeSMA20" in result.columns
+    assert "VolumeRatio" in result.columns

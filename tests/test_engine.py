@@ -21,6 +21,7 @@ class FakeProvider(MarketDataProvider):
         return pd.DataFrame(
             {
                 "Close": list(range(100, 140)),
+                "Volume": list(range(1000, 5000, 100)),
             }
         )
 
@@ -53,6 +54,7 @@ def test_scan_symbol_returns_false_when_strategy_fails():
             return pd.DataFrame(
                 {
                     "Close": list(range(140, 100, -1)),
+                    "Volume": [1000] * 40,
                 }
             )
 
@@ -83,12 +85,14 @@ def test_scan_symbols_returns_only_matching_symbols():
                 return pd.DataFrame(
                     {
                         "Close": list(range(100, 140)),
+                        "Volume": [1000] * 40,
                     }
                 )
 
             return pd.DataFrame(
                 {
                     "Close": list(range(140, 100, -1)),
+                    "Volume": [1000] * 40,
                 }
             )
 
@@ -136,12 +140,14 @@ def test_get_scan_results_returns_results_for_all_symbols():
                 return pd.DataFrame(
                     {
                         "Close": list(range(100, 140)),
+                        "Volume": [1000] * 40,
                     }
                 )
 
             return pd.DataFrame(
                 {
                     "Close": list(range(140, 100, -1)),
+                    "Volume": [1000] * 40,
                 }
             )
 
@@ -178,6 +184,7 @@ def test_get_ranked_scan_results_sorts_by_weighted_score_descending():
                 return pd.DataFrame(
                     {
                         "Close": list(range(100, 140)),
+                        "Volume": [1000] * 40,
                     }
                 )
 
@@ -186,12 +193,15 @@ def test_get_ranked_scan_results_sorts_by_weighted_score_descending():
                     {
                         "Close": list(range(100, 120))
                         + list(range(120, 100, -1)),
+                        "Volume": [1000] * 40,
+                        
                     }
                 )
 
             return pd.DataFrame(
                 {
                     "Close": list(range(140, 100, -1)),
+                    "Volume": [1000] * 40,
                 }
             )
 

@@ -6,6 +6,10 @@ from bist_radar.indicators.ema import calculate_ema
 from bist_radar.indicators.macd import calculate_macd
 from bist_radar.indicators.rsi import calculate_rsi
 from bist_radar.indicators.sma import calculate_sma
+from bist_radar.indicators.volume import (
+    calculate_volume_ratio,
+    calculate_volume_sma,
+)
 
 
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
@@ -16,6 +20,16 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     result["SMA20"] = calculate_sma(result, period=20)
     result["EMA20"] = calculate_ema(result, period=20)
     result["RSI14"] = calculate_rsi(result, period=14)
+
+    result["VolumeSMA20"] = calculate_volume_sma(
+    result,
+    period=20,
+    )
+
+    result["VolumeRatio"] = calculate_volume_ratio(
+    result,
+    period=20,
+    )
 
     macd_df = calculate_macd(result)
 
