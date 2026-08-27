@@ -33,6 +33,9 @@ class ScanResult:
     atr14: float = 0.0
     atr_percent: float = 0.0
     adx14: float = 0.0
+    kap_has_news: bool = False
+    kap_importance: str = "NONE"
+    kap_title: str = ""
 
     @property
     def macd_score(self) -> int:

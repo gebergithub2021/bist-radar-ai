@@ -19,6 +19,11 @@ from bist_radar.scanner.rules import (
     passes_basic_strategy,
 )
 from bist_radar.reports.excel_report import export_scan_results_to_excel
+from datetime import datetime
+
+from bist_radar.kap.enricher import KapEnricher
+from bist_radar.kap.service import KapService
+from bist_radar.kap.fake_provider import FakeKapProvider
 
 
 def main() -> None:
@@ -124,6 +129,33 @@ def main() -> None:
     end=end,
     )
 
+    kap_provider = FakeKapProvider()
+
+    kap_service = KapService(
+        provider=kap_provider,
+        )
+
+    kap_enricher = KapEnricher(
+        service=kap_service,
+        )
+    
+    if kap_enricher is not None:
+        kap_start = datetime.combine(
+        start,
+        datetime.min.time(),
+        )   
+
+        kap_end = datetime.combine(
+        end,
+        datetime.max.time(),
+        )
+
+        detailed_results = kap_enricher.enrich_all(
+        results=detailed_results,
+        start=kap_start,
+        end=kap_end,
+        )
+
     output_path = Path("reports") / "scan_results.csv"
 
     output_path.parent.mkdir(
@@ -164,6 +196,12 @@ def main() -> None:
         vol_confirm = "✓" if result.volume_confirms_trend else "✗"
         ema_status = "✓" if result.above_ema20 else "✗"
         trend_status = "✓" if result.ema_above_sma20 else "✗"
+        if result.kap_has_news:kap_status = (
+            f"✓ [{result.kap_importance}] "
+            f"{result.kap_title}"
+            )
+        else:
+            kap_status = "✗"
 
         print(
             f"{result.symbol:<6} "
@@ -187,7 +225,9 @@ def main() -> None:
             f"VOL:{result.volume_ratio:>4.2f}x "
             f"VOLCONF:{vol_confirm} "
             f"TOTAL:{result.weighted_score:>3}/100 "
-            f"{result.rating}"
+            f"{result.rating} "
+            f"KAP:{kap_status}"
+            
         )
 
 if __name__ == "__main__":

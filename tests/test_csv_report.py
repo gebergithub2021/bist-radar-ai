@@ -80,6 +80,9 @@ def test_export_scan_results_to_csv(tmp_path: Path):
     "MACD Score",
     "Total Score",
     "Rating",
+    "KAP News",
+    "KAP Importance",
+    "KAP Title",
     ]
 
     assert list(df["Symbol"]) == ["AAA", "BBB"]
