@@ -10,6 +10,10 @@ from bist_radar.scanner.rules import (
     passes_basic_strategy,
 )
 from bist_radar.scanner.rules import volume_confirms_trend
+from bist_radar.scanner.rules import (
+    is_above_ema20,
+    ema_is_above_sma,
+)
 
 
 class ScannerEngine:
@@ -69,6 +73,14 @@ class ScannerEngine:
             volume_sma20=float(latest["VolumeSMA20"]),
             volume_ratio=float(latest["VolumeRatio"]),
             volume_confirms_trend=bool(volume_confirms_trend(df)),
+            momentum5=float(latest["Momentum5"]),
+            momentum20=float(latest["Momentum20"]),
+            above_ema20=bool(is_above_ema20(df)),
+            ema_above_sma20=bool(ema_is_above_sma(df)),
+            high_52w=float(latest["High52W"]),
+            low_52w=float(latest["Low52W"]),
+            position_52w=float(latest["Position52W"]),
+            high_52w_distance=float(latest["High52WDistance"]),
         )
 
     def get_ranked_scan_results(

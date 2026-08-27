@@ -257,3 +257,119 @@ def test_rating_returns_fail_for_low_score():
     )
 
     assert result.rating == "FAIL"
+
+def test_momentum5_comment():
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum5=6,
+    ).momentum5_comment == "STRONG POSITIVE"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum5=2,
+    ).momentum5_comment == "POSITIVE"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum5=0,
+    ).momentum5_comment == "NEUTRAL"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum5=-2,
+    ).momentum5_comment == "NEGATIVE"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum5=-6,
+    ).momentum5_comment == "STRONG NEGATIVE"
+
+
+def test_momentum20_comment():
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum20=12,
+    ).momentum20_comment == "STRONG POSITIVE"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum20=5,
+    ).momentum20_comment == "POSITIVE"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum20=0,
+    ).momentum20_comment == "NEUTRAL"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum20=-5,
+    ).momentum20_comment == "NEGATIVE"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        momentum20=-12,
+    ).momentum20_comment == "STRONG NEGATIVE"
+
+def test_position_52w_comment():
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        position_52w=95,
+    ).position_52w_comment == "NEAR 52W HIGH"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        position_52w=80,
+    ).position_52w_comment == "UPPER RANGE"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        position_52w=55,
+    ).position_52w_comment == "MID RANGE"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        position_52w=25,
+    ).position_52w_comment == "LOWER RANGE"

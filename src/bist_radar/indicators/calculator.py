@@ -10,6 +10,13 @@ from bist_radar.indicators.volume import (
     calculate_volume_ratio,
     calculate_volume_sma,
 )
+from bist_radar.indicators.momentum import calculate_price_change
+from bist_radar.indicators.price_position import (
+    calculate_52w_high,
+    calculate_52w_high_distance,
+    calculate_52w_low,
+    calculate_52w_position,
+)
 
 
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
@@ -30,6 +37,21 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     result,
     period=20,
     )
+
+    result["Momentum5"] = calculate_price_change(
+    result,
+    period=5,
+    )
+
+    result["Momentum20"] = calculate_price_change(
+    result,
+    period=20,
+    )
+
+    result["High52W"] = calculate_52w_high(result)
+    result["Low52W"] = calculate_52w_low(result)
+    result["Position52W"] = calculate_52w_position(result)
+    result["High52WDistance"] = calculate_52w_high_distance(result)
 
     macd_df = calculate_macd(result)
 

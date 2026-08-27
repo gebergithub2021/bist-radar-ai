@@ -22,6 +22,14 @@ class ScanResult:
     volume_sma20: float = 0.0
     volume_ratio: float = 0.0
     volume_confirms_trend: bool = False
+    momentum5: float = 0.0
+    momentum20: float = 0.0
+    above_ema20: bool = False
+    ema_above_sma20: bool = False
+    high_52w: float = 0.0
+    low_52w: float = 0.0
+    position_52w: float = 0.0
+    high_52w_distance: float = 0.0
 
     @property
     def macd_score(self) -> int:
@@ -133,3 +141,54 @@ class ScanResult:
             return "WATCH"
 
         return "FAIL"
+    @property
+    def momentum5_comment(self) -> str:
+        """Return short-term momentum comment."""
+
+        if self.momentum5 >= 5:
+            return "STRONG POSITIVE"
+
+        if self.momentum5 >= 1:
+         return "POSITIVE"
+
+        if self.momentum5 > -1:
+         return "NEUTRAL"
+
+        if self.momentum5 > -5:
+            return "NEGATIVE"
+
+        return "STRONG NEGATIVE"
+
+
+    @property
+    def momentum20_comment(self) -> str:
+        """Return medium-term momentum comment."""
+
+        if self.momentum20 >= 10:
+            return "STRONG POSITIVE"
+
+        if self.momentum20 >= 3:
+            return "POSITIVE"
+
+        if self.momentum20 > -3:
+            return "NEUTRAL"
+
+        if self.momentum20 > -10:
+            return "NEGATIVE"
+
+        return "STRONG NEGATIVE"
+    
+    @property
+    def position_52w_comment(self) -> str:
+        """Return 52-week position comment."""
+
+        if self.position_52w >= 90:
+            return "NEAR 52W HIGH"
+
+        if self.position_52w >= 70:
+            return "UPPER RANGE"
+
+        if self.position_52w >= 40:
+            return "MID RANGE"
+
+        return "LOWER RANGE"

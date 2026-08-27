@@ -24,6 +24,15 @@ from bist_radar.scanner.rules import (
     volume_confirms_trend,
 )
 
+from bist_radar.scanner.rules import (
+    is_above_ema20,
+    ema_is_above_sma,
+)
+
+from bist_radar.scanner.rules import (
+    ema_is_above_sma,
+)
+
 def test_is_above_sma20():
     """Close above SMA20 should return True."""
 
@@ -132,3 +141,46 @@ def test_volume_confirms_trend_returns_false():
     )
 
     assert not volume_confirms_trend(df)
+
+def test_is_above_ema20_returns_true():
+    df = pd.DataFrame(
+        {
+            "Close": [105],
+            "EMA20": [100],
+        }
+    )
+
+    assert is_above_ema20(df)
+
+
+def test_is_above_ema20_returns_false():
+    df = pd.DataFrame(
+        {
+            "Close": [95],
+            "EMA20": [100],
+        }
+    )
+
+    assert not is_above_ema20(df)
+
+
+def test_ema_is_above_sma_returns_true():
+    df = pd.DataFrame(
+        {
+            "SMA20": [100],
+            "EMA20": [105],
+        }
+    )
+
+    assert ema_is_above_sma(df)
+
+
+def test_ema_is_above_sma_returns_false():
+    df = pd.DataFrame(
+        {
+            "SMA20": [105],
+            "EMA20": [100],
+        }
+    )
+
+    assert not ema_is_above_sma(df)

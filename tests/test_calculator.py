@@ -39,3 +39,9 @@ def test_add_indicators_adds_expected_columns():
     assert "Histogram" in result.columns
     assert "VolumeSMA20" in result.columns
     assert "VolumeRatio" in result.columns
+    assert "Momentum5" in result.columns
+    assert "Momentum20" in result.columns
+    assert "High52W" in result.columns
+    assert "Low52W" in result.columns
+    assert "Position52W" in result.columns
+    assert "High52WDistance" in result.columns

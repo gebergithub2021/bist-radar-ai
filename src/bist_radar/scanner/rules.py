@@ -62,3 +62,18 @@ def volume_confirms_trend(df: pd.DataFrame) -> bool:
         latest["Close"] > latest["SMA20"]
         and latest["VolumeRatio"] > 1.0
     )
+
+def is_above_ema20(df: pd.DataFrame) -> bool:
+    """Return True if latest close is above EMA20."""
+
+    latest = df.iloc[-1]
+
+    return latest["Close"] > latest["EMA20"]
+
+
+def ema_is_above_sma(df: pd.DataFrame) -> bool:
+    """Return True if EMA20 is above SMA20."""
+
+    latest = df.iloc[-1]
+
+    return latest["EMA20"] > latest["SMA20"]
