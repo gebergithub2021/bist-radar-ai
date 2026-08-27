@@ -6,6 +6,7 @@ import pandas as pd
 
 from bist_radar.models.scan_result import ScanResult
 from bist_radar.reports.excel_report import export_scan_results_to_excel
+from datetime import date
 
 
 def test_export_scan_results_to_excel(tmp_path: Path):
@@ -66,5 +67,8 @@ def test_export_scan_results_to_excel(tmp_path: Path):
     sheet_name="Summary",
     )
 
-    assert summary_df.loc[0, "Metric"] == "Total Scanned"
-    assert summary_df.loc[0, "Value"] == 2
+    assert summary_df.loc[0, "Metric"] == "Scan Date"
+    assert summary_df.loc[0, "Value"] == date.today().isoformat()
+
+    assert summary_df.loc[1, "Metric"] == "Total Scanned"
+    assert summary_df.loc[1, "Value"] == 2
