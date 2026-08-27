@@ -126,6 +126,10 @@ def test_get_scan_result_returns_detailed_result():
     assert result.macd_bullish
     assert result.score == 3
     assert result.passed
+    assert result.volume > 0
+    assert result.volume_sma20 > 0
+    assert result.volume_ratio > 0
+    assert result.volume_confirms_trend
 def test_get_scan_results_returns_results_for_all_symbols():
     """Detailed scan results should be returned for all symbols."""
 

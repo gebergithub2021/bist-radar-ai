@@ -8,6 +8,21 @@ from bist_radar.scanner.rules import (
     is_macd_bullish,
     passes_basic_strategy,
 )
+from bist_radar.scanner.rules import (
+    is_above_sma20,
+    is_macd_bullish,
+    is_rsi_above_50,
+    is_volume_above_average,
+    passes_basic_strategy,
+)
+from bist_radar.scanner.rules import (
+    is_above_sma20,
+    is_macd_bullish,
+    is_rsi_above_50,
+    is_volume_above_average,
+    passes_basic_strategy,
+    volume_confirms_trend,
+)
 
 def test_is_above_sma20():
     """Close above SMA20 should return True."""
@@ -58,3 +73,62 @@ def test_passes_basic_strategy():
     )
 
     assert passes_basic_strategy(df)
+
+def test_is_volume_above_average_returns_true():
+    """Volume ratio above 1 should return True."""
+
+    df = pd.DataFrame(
+        {
+            "VolumeRatio": [1.25],
+        }
+    )
+
+    assert is_volume_above_average(df)
+
+
+def test_is_volume_above_average_returns_false():
+    """Volume ratio at or below 1 should return False."""
+
+    df = pd.DataFrame(
+        {
+            "VolumeRatio": [0.85],
+        }
+    )
+
+    assert not is_volume_above_average(df)
+
+def is_volume_above_average(df: pd.DataFrame) -> bool:
+    """
+    Return True if the latest volume is above its 20-day average.
+    """
+
+    latest = df.iloc[-1]
+
+    return latest["VolumeRatio"] > 1.0
+
+def test_volume_confirms_trend_returns_true():
+    """Volume should confirm trend when price and volume are both strong."""
+
+    df = pd.DataFrame(
+        {
+            "Close": [105],
+            "SMA20": [100],
+            "VolumeRatio": [1.25],
+        }
+    )
+
+    assert volume_confirms_trend(df)
+
+
+def test_volume_confirms_trend_returns_false():
+    """Volume should not confirm trend when volume is below average."""
+
+    df = pd.DataFrame(
+        {
+            "Close": [105],
+            "SMA20": [100],
+            "VolumeRatio": [0.80],
+        }
+    )
+
+    assert not volume_confirms_trend(df)

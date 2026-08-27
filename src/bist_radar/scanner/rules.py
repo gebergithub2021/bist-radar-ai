@@ -40,3 +40,25 @@ def passes_basic_strategy(df: pd.DataFrame) -> bool:
         and is_rsi_above_50(df)
         and is_macd_bullish(df)
     )
+
+def is_volume_above_average(df: pd.DataFrame) -> bool:
+    """
+    Return True if the latest volume is above its 20-day average.
+    """
+
+    latest = df.iloc[-1]
+
+    return latest["VolumeRatio"] > 1.0
+
+def volume_confirms_trend(df: pd.DataFrame) -> bool:
+    """
+    Return True if price is above SMA20
+    and volume is above its 20-day average.
+    """
+
+    latest = df.iloc[-1]
+
+    return (
+        latest["Close"] > latest["SMA20"]
+        and latest["VolumeRatio"] > 1.0
+    )

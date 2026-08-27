@@ -161,12 +161,15 @@ def main() -> None:
         sma_status = "✓" if result.above_sma20 else "✗"
         rsi_status = "✓" if result.rsi_above_50 else "✗"
         macd_status = "✓" if result.macd_bullish else "✗"
+        vol_confirm = "✓" if result.volume_confirms_trend else "✗"
 
         print(
             f"{result.symbol:<6} "
             f"SMA:{result.sma_score:>2}/30 "
             f"RSI:{result.rsi_score:>2}/30 "
             f"MACD:{result.macd_score:>2}/40 "
+            f"VOL:{result.volume_ratio:>4.2f}x "
+            f"VOLCONF:{vol_confirm} "
             f"TOTAL:{result.weighted_score:>3}/100 "
             f"{result.rating}"
         )

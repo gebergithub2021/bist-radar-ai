@@ -55,6 +55,8 @@ def test_export_scan_results_to_csv(tmp_path: Path):
     "MACD",
     "Signal",
     "Histogram",
+    "Volume Ratio",
+    "Volume Confirm",
     "SMA Score",
     "RSI Score",
     "MACD Score",

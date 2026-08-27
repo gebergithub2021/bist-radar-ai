@@ -9,6 +9,7 @@ from bist_radar.scanner.rules import (
     is_rsi_above_50,
     passes_basic_strategy,
 )
+from bist_radar.scanner.rules import volume_confirms_trend
 
 
 class ScannerEngine:
@@ -64,6 +65,10 @@ class ScannerEngine:
             macd=float(latest["MACD"]),
             signal=float(latest["Signal"]),
             histogram=float(latest["Histogram"]),
+            volume=float(latest["Volume"]),
+            volume_sma20=float(latest["VolumeSMA20"]),
+            volume_ratio=float(latest["VolumeRatio"]),
+            volume_confirms_trend=bool(volume_confirms_trend(df)),
         )
 
     def get_ranked_scan_results(

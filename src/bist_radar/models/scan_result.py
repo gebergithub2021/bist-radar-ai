@@ -18,6 +18,10 @@ class ScanResult:
     macd: float = 0.0
     signal: float = 0.0
     histogram: float = 0.0
+    volume: float = 0.0
+    volume_sma20: float = 0.0
+    volume_ratio: float = 0.0
+    volume_confirms_trend: bool = False
 
     @property
     def macd_score(self) -> int:
