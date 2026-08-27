@@ -23,7 +23,7 @@ from datetime import datetime
 
 from bist_radar.kap.enricher import KapEnricher
 from bist_radar.kap.service import KapService
-from bist_radar.kap.fake_provider import FakeKapProvider
+from bist_radar.kap.factory import create_kap_provider
 
 
 def main() -> None:
@@ -129,13 +129,16 @@ def main() -> None:
     end=end,
     )
 
-    kap_provider = FakeKapProvider()
+    kap_provider = create_kap_provider()
 
-    kap_service = KapService(
+    kap_enricher = None
+
+    if kap_provider is not None:
+        kap_service = KapService(
         provider=kap_provider,
         )
 
-    kap_enricher = KapEnricher(
+        kap_enricher = KapEnricher(
         service=kap_service,
         )
     
