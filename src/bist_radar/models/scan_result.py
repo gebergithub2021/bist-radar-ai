@@ -30,6 +30,9 @@ class ScanResult:
     low_52w: float = 0.0
     position_52w: float = 0.0
     high_52w_distance: float = 0.0
+    atr14: float = 0.0
+    atr_percent: float = 0.0
+    adx14: float = 0.0
 
     @property
     def macd_score(self) -> int:
@@ -192,3 +195,29 @@ class ScanResult:
             return "MID RANGE"
 
         return "LOWER RANGE"
+
+    @property
+    def volatility_comment(self) -> str:
+            """Return volatility comment based on ATR percentage."""
+
+            if self.atr_percent < 2.5:
+                return "LOW"
+
+            if self.atr_percent < 4.0:
+                return "MEDIUM"
+
+            return "HIGH"
+    @property
+    def adx_comment(self) -> str:
+        """Return trend strength comment based on ADX."""
+
+        if self.adx14 < 20:
+            return "WEAK"
+
+        if self.adx14 < 25:
+            return "DEVELOPING"
+
+        if self.adx14 < 40:
+            return "STRONG"
+
+        return "VERY STRONG"

@@ -26,6 +26,23 @@ def test_add_indicators_adds_expected_columns():
             3000, 3100, 3200, 3300, 3400,
             3500, 3600, 3700, 3800, 3900,
             ],
+
+        "High": [
+            101, 102, 103, 104, 105,
+            106, 107, 108, 109, 110,
+            111, 112, 113, 114, 115,
+            116, 117, 118, 119, 120,
+            121, 122, 123, 124, 125,
+            126, 127, 128, 129, 130,
+            ],
+        "Low": [
+            99, 100, 101, 102, 103,
+            104, 105, 106, 107, 108,
+            109, 110, 111, 112, 113,
+            114, 115, 116, 117, 118,
+            119, 120, 121, 122, 123,
+            124, 125, 126, 127, 128,
+        ],
         }
     )
 
@@ -45,3 +62,6 @@ def test_add_indicators_adds_expected_columns():
     assert "Low52W" in result.columns
     assert "Position52W" in result.columns
     assert "High52WDistance" in result.columns
+    assert "ATR14" in result.columns
+    assert "ATRPercent" in result.columns
+    assert "ADX14" in result.columns

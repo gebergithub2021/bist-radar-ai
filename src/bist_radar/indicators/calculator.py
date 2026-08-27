@@ -17,7 +17,12 @@ from bist_radar.indicators.price_position import (
     calculate_52w_low,
     calculate_52w_position,
 )
-
+from bist_radar.indicators.atr import calculate_atr
+from bist_radar.indicators.atr import (
+    calculate_atr,
+    calculate_atr_percent,
+)
+from bist_radar.indicators.adx import calculate_adx
 
 def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """Add technical indicators to market data."""
@@ -52,6 +57,20 @@ def add_indicators(df: pd.DataFrame) -> pd.DataFrame:
     result["Low52W"] = calculate_52w_low(result)
     result["Position52W"] = calculate_52w_position(result)
     result["High52WDistance"] = calculate_52w_high_distance(result)
+    result["ATR14"] = calculate_atr(
+    result,
+    period=14,
+    )
+
+    result["ATRPercent"] = calculate_atr_percent(
+    result,
+    period=14,
+    )
+
+    result["ADX14"] = calculate_adx(
+    result,
+    period=14,
+    )
 
     macd_df = calculate_macd(result)
 

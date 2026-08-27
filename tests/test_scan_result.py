@@ -373,3 +373,60 @@ def test_position_52w_comment():
         macd_bullish=False,
         position_52w=25,
     ).position_52w_comment == "LOWER RANGE"
+def test_volatility_comment():
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        atr_percent=2.0,
+    ).volatility_comment == "LOW"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        atr_percent=3.0,
+    ).volatility_comment == "MEDIUM"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        atr_percent=4.5,
+    ).volatility_comment == "HIGH"
+
+def test_adx_comment():
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        adx14=15,
+    ).adx_comment == "WEAK"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        adx14=22,
+    ).adx_comment == "DEVELOPING"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        adx14=30,
+    ).adx_comment == "STRONG"
+
+    assert ScanResult(
+        symbol="TEST",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+        adx14=45,
+    ).adx_comment == "VERY STRONG"

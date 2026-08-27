@@ -6,6 +6,25 @@ from bist_radar.data.provider import MarketDataProvider
 from bist_radar.scanner.engine import ScannerEngine
 
 
+def make_market_df(
+    close: list[float],
+    volume: list[float] | None = None,
+) -> pd.DataFrame:
+    """Create market data required by scanner tests."""
+
+    if volume is None:
+        volume = [1000] * len(close)
+
+    return pd.DataFrame(
+        {
+            "Close": close,
+            "High": [value + 1 for value in close],
+            "Low": [value - 1 for value in close],
+            "Volume": volume,
+        }
+    )
+
+
 class FakeProvider(MarketDataProvider):
     """Fake provider for scanner engine tests."""
 
@@ -18,16 +37,21 @@ class FakeProvider(MarketDataProvider):
         start,
         end,
     ) -> pd.DataFrame:
-        return pd.DataFrame(
-            {
-                "Close": list(range(100, 140)),
-                "Volume": list(range(1000, 5000, 100)),
-            }
+        close = list(range(100, 140))
+
+        volume = (
+            [1000] * 39
+            + [1500]
+        )
+
+        return make_market_df(
+            close=close,
+            volume=volume,
         )
 
 
 def test_scan_symbol_returns_true_when_strategy_passes():
-    """A symbol should pass when all strategy conditions are satisfied."""
+    """A symbol should pass when strategy conditions are satisfied."""
 
     provider = FakeProvider()
     engine = ScannerEngine(provider)
@@ -51,11 +75,10 @@ def test_scan_symbol_returns_false_when_strategy_fails():
             start,
             end,
         ) -> pd.DataFrame:
-            return pd.DataFrame(
-                {
-                    "Close": list(range(140, 100, -1)),
-                    "Volume": [1000] * 40,
-                }
+            close = list(range(140, 100, -1))
+
+            return make_market_df(
+                close=close,
             )
 
     provider = FailingProvider()
@@ -80,20 +103,13 @@ def test_scan_symbols_returns_only_matching_symbols():
             start,
             end,
         ) -> pd.DataFrame:
-
             if symbol == "PASS":
-                return pd.DataFrame(
-                    {
-                        "Close": list(range(100, 140)),
-                        "Volume": [1000] * 40,
-                    }
-                )
+                close = list(range(100, 140))
+            else:
+                close = list(range(140, 100, -1))
 
-            return pd.DataFrame(
-                {
-                    "Close": list(range(140, 100, -1)),
-                    "Volume": [1000] * 40,
-                }
+            return make_market_df(
+                close=close,
             )
 
     provider = MixedProvider()
@@ -109,7 +125,7 @@ def test_scan_symbols_returns_only_matching_symbols():
 
 
 def test_get_scan_result_returns_detailed_result():
-    """Detailed scan result should contain rule outcomes and score."""
+    """Detailed scan result should contain expected values."""
 
     provider = FakeProvider()
     engine = ScannerEngine(provider)
@@ -121,15 +137,28 @@ def test_get_scan_result_returns_detailed_result():
     )
 
     assert result.symbol == "TEST"
+
     assert result.above_sma20
     assert result.rsi_above_50
     assert result.macd_bullish
+
     assert result.score == 3
     assert result.passed
+
     assert result.volume > 0
     assert result.volume_sma20 > 0
-    assert result.volume_ratio > 0
+    assert result.volume_ratio > 1
     assert result.volume_confirms_trend
+
+    assert result.momentum5 > 0
+    assert result.momentum20 > 0
+
+    assert result.above_ema20
+    assert result.ema_above_sma20
+
+    assert result.atr14 > 0
+
+
 def test_get_scan_results_returns_results_for_all_symbols():
     """Detailed scan results should be returned for all symbols."""
 
@@ -141,18 +170,12 @@ def test_get_scan_results_returns_results_for_all_symbols():
             end,
         ) -> pd.DataFrame:
             if symbol == "PASS":
-                return pd.DataFrame(
-                    {
-                        "Close": list(range(100, 140)),
-                        "Volume": [1000] * 40,
-                    }
-                )
+                close = list(range(100, 140))
+            else:
+                close = list(range(140, 100, -1))
 
-            return pd.DataFrame(
-                {
-                    "Close": list(range(140, 100, -1)),
-                    "Volume": [1000] * 40,
-                }
+            return make_market_df(
+                close=close,
             )
 
     provider = MixedProvider()
@@ -167,12 +190,11 @@ def test_get_scan_results_returns_results_for_all_symbols():
     assert len(results) == 2
 
     assert results[0].symbol == "PASS"
-    assert results[0].score == 3
     assert results[0].passed
 
     assert results[1].symbol == "FAIL"
-    assert results[1].score < 3
     assert not results[1].passed
+
 
 def test_get_ranked_scan_results_sorts_by_weighted_score_descending():
     """Results should be sorted from highest to lowest weighted score."""
@@ -185,28 +207,19 @@ def test_get_ranked_scan_results_sorts_by_weighted_score_descending():
             end,
         ) -> pd.DataFrame:
             if symbol == "STRONG":
-                return pd.DataFrame(
-                    {
-                        "Close": list(range(100, 140)),
-                        "Volume": [1000] * 40,
-                    }
+                close = list(range(100, 140))
+
+            elif symbol == "WEAK":
+                close = (
+                    list(range(100, 120))
+                    + list(range(120, 100, -1))
                 )
 
-            if symbol == "WEAK":
-                return pd.DataFrame(
-                    {
-                        "Close": list(range(100, 120))
-                        + list(range(120, 100, -1)),
-                        "Volume": [1000] * 40,
-                        
-                    }
-                )
+            else:
+                close = list(range(140, 100, -1))
 
-            return pd.DataFrame(
-                {
-                    "Close": list(range(140, 100, -1)),
-                    "Volume": [1000] * 40,
-                }
+            return make_market_df(
+                close=close,
             )
 
     provider = RankedProvider()

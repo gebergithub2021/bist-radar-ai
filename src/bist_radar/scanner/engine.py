@@ -81,6 +81,9 @@ class ScannerEngine:
             low_52w=float(latest["Low52W"]),
             position_52w=float(latest["Position52W"]),
             high_52w_distance=float(latest["High52WDistance"]),
+            atr14=float(latest["ATR14"]),
+            atr_percent=float(latest["ATRPercent"]),
+            adx14=float(latest["ADX14"]),
         )
 
     def get_ranked_scan_results(

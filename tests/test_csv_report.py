@@ -55,15 +55,26 @@ def test_export_scan_results_to_csv(tmp_path: Path):
     "MACD",
     "Signal",
     "Histogram",
+    
+    "ADX14",
+    "ADX Comment",
+    
     "Volume Ratio",
     "Volume Confirm",
+    
     "Momentum 5",
     "Momentum 5 Comment",
     "Momentum 20",
     "Momentum 20 Comment",
+    
     "52W Position",
     "52W High Distance",
     "52W Comment",
+    
+    "ATR14",
+    "ATR Percent",
+    "Volatility",
+    
     "SMA Score",
     "RSI Score",
     "MACD Score",
