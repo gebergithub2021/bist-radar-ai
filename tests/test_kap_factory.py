@@ -5,6 +5,7 @@ import pytest
 from bist_radar.kap.fake_provider import FakeKapProvider
 from bist_radar.kap.factory import create_kap_provider
 from bist_radar.kap.real_provider import RealKapProvider
+from bist_radar.kap.public_provider import PublicKapProvider
 
 
 def test_create_kap_provider_defaults_to_off(
@@ -96,3 +97,18 @@ def test_unknown_mode_raises_error(
         match="Unknown BIST_RADAR_KAP_MODE",
     ):
         create_kap_provider()
+
+def test_create_public_kap_provider(
+    monkeypatch,
+    ):
+    monkeypatch.setenv(
+        "BIST_RADAR_KAP_MODE",
+        "public",
+    )
+
+    provider = create_kap_provider()
+
+    assert isinstance(
+        provider,
+        PublicKapProvider,
+    )

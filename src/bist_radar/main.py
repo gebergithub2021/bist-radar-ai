@@ -1,16 +1,18 @@
 """Application entry point."""
 
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
-from bist_radar.reports.csv_report import export_scan_results_to_csv
+
 from bist_radar.core.config import AppConfig
 from bist_radar.core.logging import configure_logging
 from bist_radar.data.yahoo_provider import YahooFinanceProvider
-from bist_radar.indicators.ema import calculate_ema
-from bist_radar.indicators.macd import calculate_macd
-from bist_radar.indicators.rsi import calculate_rsi
-from bist_radar.indicators.sma import calculate_sma
+from bist_radar.indicators.calculator import add_indicators
+from bist_radar.kap.enricher import KapEnricher
+from bist_radar.kap.factory import create_kap_provider
+from bist_radar.kap.service import KapService
+from bist_radar.reports.csv_report import export_scan_results_to_csv
+from bist_radar.reports.excel_report import export_scan_results_to_excel
 from bist_radar.scanner.engine import ScannerEngine
 from bist_radar.scanner.rules import (
     is_above_sma20,
@@ -18,12 +20,6 @@ from bist_radar.scanner.rules import (
     is_rsi_above_50,
     passes_basic_strategy,
 )
-from bist_radar.reports.excel_report import export_scan_results_to_excel
-from datetime import datetime
-
-from bist_radar.kap.enricher import KapEnricher
-from bist_radar.kap.service import KapService
-from bist_radar.kap.factory import create_kap_provider
 
 
 def main() -> None:
@@ -33,7 +29,12 @@ def main() -> None:
     configure_logging(config.log_level)
 
     logger = logging.getLogger(__name__)
-    logger.info("%s v%s started.", config.app_name, config.version)
+
+    logger.info(
+        "%s v%s started.",
+        config.app_name,
+        config.version,
+    )
 
     provider = YahooFinanceProvider()
 
@@ -46,23 +47,28 @@ def main() -> None:
     end = date.today()
     start = end - timedelta(days=365)
 
+    # -------------------------------------------------
+    # THYAO sample data
+    # -------------------------------------------------
+
     print("\nTHYAO Örnek Verisi:")
 
-    df = provider.get_history(
+    raw_df = provider.get_history(
         symbol="THYAO",
         start=start,
         end=end,
     )
 
-    print(df.head())
+    print(raw_df.head())
 
-    # Teknik göstergeler
-    df["SMA20"] = calculate_sma(df, period=20)
-    df["EMA20"] = calculate_ema(df, period=20)
-    df["RSI14"] = calculate_rsi(df, period=14)
+    # -------------------------------------------------
+    # Technical indicators
+    #
+    # Use the same calculator as ScannerEngine.
+    # This also removes incomplete OHLC rows.
+    # -------------------------------------------------
 
-    macd_df = calculate_macd(df)
-    df = df.join(macd_df)
+    df = add_indicators(raw_df)
 
     print("\nTHYAO Teknik Göstergeler:")
 
@@ -80,6 +86,10 @@ def main() -> None:
             ]
         ].tail()
     )
+
+    # -------------------------------------------------
+    # Basic scanner example
+    # -------------------------------------------------
 
     print("\nScanner Sonucu")
 
@@ -103,6 +113,10 @@ def main() -> None:
         passes_basic_strategy(df),
     )
 
+    # -------------------------------------------------
+    # Symbols
+    # -------------------------------------------------
+
     symbols = [
         "THYAO",
         "ASELS",
@@ -111,7 +125,9 @@ def main() -> None:
         "EREGL",
     ]
 
-    engine = ScannerEngine(provider)
+    engine = ScannerEngine(
+        provider,
+    )
 
     passed_symbols = engine.scan_symbols(
         symbols=symbols,
@@ -123,86 +139,139 @@ def main() -> None:
     print("Taranan hisseler:", symbols)
     print("Geçen hisseler:", passed_symbols)
 
+    # -------------------------------------------------
+    # Detailed scan
+    # -------------------------------------------------
+
     detailed_results = engine.get_ranked_scan_results(
-    symbols=symbols,
-    start=start,
-    end=end,
+        symbols=symbols,
+        start=start,
+        end=end,
     )
+
+    # -------------------------------------------------
+    # KAP enrichment
+    # -------------------------------------------------
 
     kap_provider = create_kap_provider()
 
-    kap_enricher = None
-
     if kap_provider is not None:
         kap_service = KapService(
-        provider=kap_provider,
+            provider=kap_provider,
         )
 
         kap_enricher = KapEnricher(
-        service=kap_service,
+            service=kap_service,
         )
-    
-    if kap_enricher is not None:
+
         kap_start = datetime.combine(
-        start,
-        datetime.min.time(),
-        )   
+            start,
+            datetime.min.time(),
+        )
 
         kap_end = datetime.combine(
-        end,
-        datetime.max.time(),
+            end,
+            datetime.max.time(),
         )
 
         detailed_results = kap_enricher.enrich_all(
-        results=detailed_results,
-        start=kap_start,
-        end=kap_end,
+            results=detailed_results,
+            start=kap_start,
+            end=kap_end,
         )
 
-    output_path = Path("reports") / "scan_results.csv"
+    # -------------------------------------------------
+    # CSV report
+    # -------------------------------------------------
+
+    output_path = (
+        Path("reports")
+        / "scan_results.csv"
+    )
 
     output_path.parent.mkdir(
-    parents=True,
-    exist_ok=True,
+        parents=True,
+        exist_ok=True,
     )
 
     export_scan_results_to_csv(
-    results=detailed_results,
-    output_path=output_path,
+        results=detailed_results,
+        output_path=output_path,
     )
 
-    print(f"\nCSV raporu oluşturuldu: {output_path}")
+    print(
+        f"\nCSV raporu oluşturuldu: "
+        f"{output_path}"
+    )
 
-    excel_output_path = Path("reports") / "scan_results.xlsx"
+    # -------------------------------------------------
+    # Excel report
+    # -------------------------------------------------
+
+    excel_output_path = (
+        Path("reports")
+        / "scan_results.xlsx"
+    )
 
     export_scan_results_to_excel(
-    results=detailed_results,
-    output_path=excel_output_path,
-)
+        results=detailed_results,
+        output_path=excel_output_path,
+    )
 
     if excel_output_path.exists():
         print(
             f"Excel raporu oluşturuldu: "
             f"{excel_output_path.resolve()}"
         )
-    else:
-        print("HATA: Excel raporu oluşturulamadı.")
 
-    print("\nDetaylı Tarama Sonuçları")
+    else:
+        print(
+            "HATA: Excel raporu oluşturulamadı."
+        )
+
+    # -------------------------------------------------
+    # Terminal results
+    # -------------------------------------------------
+
+    print(
+        "\nDetaylı Tarama Sonuçları"
+    )
 
     for result in detailed_results:
-        status = result.rating
+        vol_confirm = (
+            "✓"
+            if result.volume_confirms_trend
+            else "✗"
+        )
 
-        sma_status = "✓" if result.above_sma20 else "✗"
-        rsi_status = "✓" if result.rsi_above_50 else "✗"
-        macd_status = "✓" if result.macd_bullish else "✗"
-        vol_confirm = "✓" if result.volume_confirms_trend else "✗"
-        ema_status = "✓" if result.above_ema20 else "✗"
-        trend_status = "✓" if result.ema_above_sma20 else "✗"
-        if result.kap_has_news:kap_status = (
-            f"✓ [{result.kap_importance}] "
-            f"{result.kap_title}"
+        ema_status = (
+            "✓"
+            if result.above_ema20
+            else "✗"
+        )
+
+        trend_status = (
+            "✓"
+            if result.ema_above_sma20
+            else "✗"
+        )
+
+        if result.kap_has_news:
+                kap_status = (
+                    f"✓ "
+                    f"[{result.kap_importance}] "
+                    f"{result.kap_title} "
+                    f"[matched: {result.kap_reason}]"
             )
+
+        elif result.kap_importance == "UNAVAILABLE":
+            kap_status = (
+                    f"✓ "
+                    f"[{result.kap_importance}] "
+                    f"{result.kap_title} "
+                    f"[matched: {result.kap_reason}]"
+                    )       
+
         else:
             kap_status = "✗"
 
@@ -232,6 +301,7 @@ def main() -> None:
             f"KAP:{kap_status}"
             
         )
+
 
 if __name__ == "__main__":
     main()

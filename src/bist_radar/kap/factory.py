@@ -4,6 +4,7 @@ import os
 
 from bist_radar.kap.fake_provider import FakeKapProvider
 from bist_radar.kap.provider import KapProvider
+from bist_radar.kap.public_provider import PublicKapProvider
 from bist_radar.kap.real_provider import RealKapProvider
 
 
@@ -20,6 +21,9 @@ def create_kap_provider() -> KapProvider | None:
 
     if mode == "fake":
         return FakeKapProvider()
+
+    if mode == "public":
+        return PublicKapProvider()
 
     if mode == "real":
         api_key = os.getenv("KAP_API_KEY")

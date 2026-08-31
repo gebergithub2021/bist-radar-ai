@@ -86,6 +86,7 @@ def test_enrich_uses_latest_disclosure_when_no_high():
                     published_at=datetime(2026, 8, 27, 12, 0),
                     title="Özel Durum Açıklaması",
                     summary="Genel bilgilendirme yapılmıştır.",
+                    url="https://www.kap.org.tr/tr/Bildirim/123456",
                 ),
             ],
         }
@@ -103,7 +104,8 @@ def test_enrich_uses_latest_disclosure_when_no_high():
 
     assert result.kap_has_news is True
     assert result.kap_importance == "LOW"
-    assert result.kap_title == "Özel Durum Açıklaması"
+    assert result.kap_title == "Genel bilgilendirme yapılmıştır."
+    assert (result.kap_url== "https://www.kap.org.tr/tr/Bildirim/123456")
 
 
 def test_enrich_prefers_latest_high_disclosure():

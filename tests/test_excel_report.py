@@ -24,6 +24,7 @@ def test_export_scan_results_to_excel(tmp_path: Path):
             macd=2.5,
             signal=1.8,
             histogram=0.6,
+            kap_url="https://www.kap.org.tr/tr/Bildirim/1655510",
         ),
         ScanResult(
             symbol="BBB",
@@ -36,6 +37,7 @@ def test_export_scan_results_to_excel(tmp_path: Path):
             macd=-1.0,
             signal=-0.5,
             histogram=-0.5,
+            kap_url="https://www.kap.org.tr/tr/Bildirim/1655510",
         ),
     ]
 
@@ -56,11 +58,13 @@ def test_export_scan_results_to_excel(tmp_path: Path):
     assert list(df["Symbol"]) == ["AAA", "BBB"]
     assert list(df["Total Score"]) == [100, 0]
     assert list(df["Rating"]) == ["STRONG", "FAIL"]
+    
 
     excel_file = pd.ExcelFile(output_path)
 
     assert "BIST Radar" in excel_file.sheet_names
     assert "Summary" in excel_file.sheet_names
+    assert "KAP URL" in df.columns
 
     summary_df = pd.read_excel(
     output_path,
@@ -72,3 +76,7 @@ def test_export_scan_results_to_excel(tmp_path: Path):
 
     assert summary_df.loc[1, "Metric"] == "Total Scanned"
     assert summary_df.loc[1, "Value"] == 2
+    assert (
+        df.loc[0, "KAP URL"]
+        == "https://www.kap.org.tr/tr/Bildirim/1655510"
+        )

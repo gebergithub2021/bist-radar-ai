@@ -36,6 +36,11 @@ class ScanResult:
     kap_has_news: bool = False
     kap_importance: str = "NONE"
     kap_title: str = ""
+    kap_has_news: bool = False
+    kap_importance: str = "NONE"
+    kap_title: str = ""
+    kap_reason: str = ""
+    kap_url: str = ""
 
     @property
     def macd_score(self) -> int:

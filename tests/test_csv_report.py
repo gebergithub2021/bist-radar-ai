@@ -31,6 +31,7 @@ def test_export_scan_results_to_csv(tmp_path: Path):
             sma20=100,
             rsi14=40,
             histogram=-0.2,
+            kap_url="https://www.kap.org.tr/tr/Bildirim/1655510",
         ),
     ]
 
@@ -40,7 +41,9 @@ def test_export_scan_results_to_csv(tmp_path: Path):
         results=results,
         output_path=output_path,
     )
-
+    content = output_path.read_text(
+    encoding="utf-8",
+    )
     assert output_path.exists()
 
     df = pd.read_csv(
@@ -83,8 +86,14 @@ def test_export_scan_results_to_csv(tmp_path: Path):
     "KAP News",
     "KAP Importance",
     "KAP Title",
+    "KAP URL",
+    
     ]
-
+    
     assert list(df["Symbol"]) == ["AAA", "BBB"]
     assert list(df["Total Score"]) == [100, 0]
     assert list(df["Rating"]) == ["STRONG", "FAIL"]
+    assert (
+    "https://www.kap.org.tr/tr/Bildirim/1655510"
+    in content
+)

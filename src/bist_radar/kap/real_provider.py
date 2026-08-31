@@ -1,4 +1,4 @@
-"""Real KAP REST API provider."""
+"""Official KAP REST API provider."""
 
 from datetime import datetime
 
@@ -7,13 +7,19 @@ from bist_radar.kap.provider import KapProvider
 
 
 class RealKapProvider(KapProvider):
-    """KAP provider backed by the official KAP REST API."""
+    """Provider for the official KAP Data Distribution Service."""
 
     def __init__(
         self,
         api_key: str,
         base_url: str,
     ) -> None:
+        if not api_key.strip():
+            raise ValueError("api_key cannot be empty.")
+
+        if not base_url.strip():
+            raise ValueError("base_url cannot be empty.")
+
         self.api_key = api_key
         self.base_url = base_url.rstrip("/")
 
@@ -24,13 +30,13 @@ class RealKapProvider(KapProvider):
         end: datetime,
     ) -> list[KapDisclosure]:
         """
-        Return disclosures from the official KAP API.
+        Fetch disclosures from the official KAP REST API.
 
-        HTTP integration will be implemented once
-        official API credentials and endpoint details
-        are configured.
+        HTTP integration will be implemented after the official
+        subscriber documentation and credentials are available.
         """
 
         raise NotImplementedError(
-            "Official KAP API credentials are required."
+            "Official KAP API subscriber credentials and "
+            "endpoint documentation are required."
         )
