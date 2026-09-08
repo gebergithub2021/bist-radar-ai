@@ -4,6 +4,7 @@ from datetime import date, datetime, timedelta
 
 from fastapi import Depends, FastAPI, Query
 
+from bist_radar.api.models import ScanResponse
 from bist_radar.api.serializers import scan_result_to_dict
 from bist_radar.data.yahoo_provider import YahooFinanceProvider
 from bist_radar.kap.enricher import KapEnricher
@@ -55,7 +56,10 @@ def health() -> dict[str, str]:
     }
 
 
-@app.get("/scan")
+@app.get(
+    "/scan",
+    response_model=ScanResponse,
+)
 def scan(
     symbols: str = Query(
         default="THYAO,ASELS,TUPRS,KRDMD,EREGL",
@@ -76,16 +80,12 @@ def scan(
     ]
 
     end = date.today()
-    start = end - timedelta(
-        days=365,
-    )
+    start = end - timedelta(days=365)
 
-    scan_results = (
-        engine.get_ranked_scan_results(
-            symbols=parsed_symbols,
-            start=start,
-            end=end,
-        )
+    scan_results = engine.get_ranked_scan_results(
+        symbols=parsed_symbols,
+        start=start,
+        end=end,
     )
 
     if kap_enricher is not None:
