@@ -226,3 +226,123 @@ def test_scan_removes_duplicate_symbols() -> None:
         "ASELS",
         "TUPRS",
     ]
+
+def test_scan_rejects_more_than_20_symbols() -> None:
+    symbols = ",".join(
+        f"SYM{i}"
+        for i in range(21)
+    )
+
+    response = client.get(
+        f"/scan?symbols={symbols}"
+    )
+
+    assert response.status_code == 422
+
+def test_scan_accepts_exactly_20_symbols() -> None:
+    symbols = ",".join(
+        f"SYM{i}"
+        for i in range(20)
+    )
+
+    response = client.get(
+        f"/scan?symbols={symbols}"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert len(data["symbols"]) == 20
+
+class PartiallyFailingScannerEngine:
+    def get_ranked_scan_results(
+        self,
+        symbols: list[str],
+        start: date,
+        end: date,
+    ) -> list[ScanResult]:
+        raise RuntimeError(
+            "Yahoo Finance request failed."
+        )
+
+
+def override_failing_scanner_engine() -> PartiallyFailingScannerEngine:
+    return PartiallyFailingScannerEngine()
+
+
+def test_scan_handles_scanner_failure() -> None:
+    original_override = app.dependency_overrides[
+        get_scanner_engine
+    ]
+
+    app.dependency_overrides[
+        get_scanner_engine
+    ] = override_failing_scanner_engine
+
+    try:
+        response = client.get(
+            "/scan?symbols=ASELS"
+        )
+
+        assert response.status_code == 503
+
+        data = response.json()
+
+        assert data["detail"] == (
+            "Market data service is temporarily unavailable."
+        )
+    finally:
+        app.dependency_overrides[
+            get_scanner_engine
+        ] = original_override
+
+class FailingKapEnricher:
+    def enrich_all(
+        self,
+        results: list[ScanResult],
+        start: datetime,
+        end: datetime,
+    ) -> list[ScanResult]:
+        raise RuntimeError(
+            "KAP service failed."
+        )
+
+
+def override_failing_kap_enricher() -> FailingKapEnricher:
+    return FailingKapEnricher()
+
+
+def test_scan_survives_kap_failure() -> None:
+    original_override = app.dependency_overrides[
+        get_kap_enricher
+    ]
+
+    app.dependency_overrides[
+        get_kap_enricher
+    ] = override_failing_kap_enricher
+
+    try:
+        response = client.get(
+            "/scan?symbols=ASELS"
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+        result = data["results"][0]
+
+        assert result["symbol"] == "ASELS"
+        assert result["score"] == 90
+        assert result["rating"] == "STRONG"
+
+        assert result["kap"] == {
+            "has_news": False,
+            "importance": "UNAVAILABLE",
+            "title": "KAP service unavailable",
+            "url": "",
+        }
+    finally:
+        app.dependency_overrides[
+            get_kap_enricher
+        ] = original_override

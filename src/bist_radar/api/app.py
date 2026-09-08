@@ -78,10 +78,10 @@ def scan(
         for symbol in symbols.split(",")
         if symbol.strip()
     ]
-    
+
     parsed_symbols = list(
         dict.fromkeys(raw_symbols)
-        )
+    )
 
     if not parsed_symbols:
         raise HTTPException(
@@ -89,14 +89,28 @@ def scan(
             detail="At least one symbol is required.",
         )
 
+    if len(parsed_symbols) > 20:
+        raise HTTPException(
+            status_code=422,
+            detail="A maximum of 20 symbols is allowed.",
+        )
+
     end = date.today()
     start = end - timedelta(days=365)
 
-    scan_results = engine.get_ranked_scan_results(
-        symbols=parsed_symbols,
-        start=start,
-        end=end,
-    )
+    try:
+        scan_results = engine.get_ranked_scan_results(
+            symbols=parsed_symbols,
+            start=start,
+            end=end,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Market data service is temporarily unavailable."
+            ),
+        ) from exc
 
     if kap_enricher is not None:
         kap_end_date = end
@@ -114,11 +128,21 @@ def scan(
             datetime.max.time(),
         )
 
-        scan_results = kap_enricher.enrich_all(
-            results=scan_results,
-            start=kap_start,
-            end=kap_end,
-        )
+        try:
+            scan_results = kap_enricher.enrich_all(
+                results=scan_results,
+                start=kap_start,
+                end=kap_end,
+            )
+        except RuntimeError:
+            for result in scan_results:
+                result.kap_has_news = False
+                result.kap_importance = "UNAVAILABLE"
+                result.kap_title = (
+                    "KAP service unavailable"
+                )
+                result.kap_reason = "service error"
+                result.kap_url = ""
 
     serialized_results = [
         scan_result_to_dict(result)
