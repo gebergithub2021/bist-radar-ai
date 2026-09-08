@@ -46,7 +46,7 @@ def test_filters_disclosures_by_symbol(
         {
             "publishDate": "27.08.2026 12:30:00",
             "stockCodes": "ASELS",
-            "subject": "Yeni İş İlişkisi",
+            "subject": "KatÄ±lÄ±m FinansÄ± Ä°lkeleri Bilgi Formu",
             "summary": "Yeni sözleşme imzalanmıştır.",
             "disclosureIndex": 1655510,
         },
@@ -90,7 +90,7 @@ def test_filters_disclosures_by_symbol(
     disclosure = disclosures[0]
 
     assert disclosure.symbol == "ASELS"
-    assert disclosure.title == "Yeni İş İlişkisi"
+    assert disclosure.title == ("Katılım Finansı İlkeleri Bilgi Formu")
     assert disclosure.summary == "Yeni sözleşme imzalanmıştır."
 
     assert (
@@ -431,3 +431,25 @@ def test_uses_separate_disk_cache_for_each_chunk(
     ]
 
     assert len(calls) == 3
+
+def test_public_kap_provider_preserves_turkish_characters() -> None:
+    broken_title = (
+        "KatÄ±lÄ±m FinansÄ± Ä°lkeleri Bilgi Formu"
+    )
+
+    expected_title = (
+        "Katılım Finansı İlkeleri Bilgi Formu"
+    )
+
+    assert broken_title != expected_title
+
+def test_public_kap_provider_repairs_mojibake_title() -> None:
+    provider = PublicKapProvider()
+
+    repaired = provider._repair_text(
+        "KatÄ±lÄ±m FinansÄ± Ä°lkeleri Bilgi Formu"
+    )
+
+    assert repaired == (
+        "Katılım Finansı İlkeleri Bilgi Formu"
+    )

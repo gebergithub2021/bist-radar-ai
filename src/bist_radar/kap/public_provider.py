@@ -440,15 +440,18 @@ class PublicKapProvider(KapProvider):
                     disclosure_id=disclosure_id,
                     symbol=symbol,
                     published_at=published_at,
-                    title=(
+                    title=self._repair_text(
                         item.get("subject")
                         or ""
                     ),
-                    summary=(
+                    summary=self._repair_text(
                         item.get("summary")
                         or ""
                     ),
-                    url=url,
+                    url=(
+                        f"{self.base_url}/tr/Bildirim/"
+                        f"{item['disclosureIndex']}"
+                    ),
                 )
             )
 
@@ -457,3 +460,14 @@ class PublicKapProvider(KapProvider):
             )
 
         return results
+
+    def _repair_text(self, value: str) -> str:
+        """Repair common UTF-8 mojibake in public KAP text."""
+
+        if not value:
+            return value
+
+        try:
+            return value.encode("latin1").decode("utf-8")
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            return value
