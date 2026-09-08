@@ -2,7 +2,7 @@
 
 from datetime import date, datetime, timedelta
 
-from fastapi import Depends, FastAPI, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 
 from bist_radar.api.models import ScanResponse
 from bist_radar.api.serializers import scan_result_to_dict
@@ -73,11 +73,21 @@ def scan(
 ) -> dict[str, object]:
     """Run radar scan for requested symbols."""
 
-    parsed_symbols = [
+    raw_symbols = [
         symbol.strip().upper()
         for symbol in symbols.split(",")
         if symbol.strip()
     ]
+    
+    parsed_symbols = list(
+        dict.fromkeys(raw_symbols)
+        )
+
+    if not parsed_symbols:
+        raise HTTPException(
+            status_code=422,
+            detail="At least one symbol is required.",
+        )
 
     end = date.today()
     start = end - timedelta(days=365)

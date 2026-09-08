@@ -184,3 +184,45 @@ def test_scan_uses_30_day_kap_window() -> None:
     ).days
 
     assert kap_days == 30
+
+def test_scan_rejects_empty_symbols() -> None:
+    response = client.get(
+        "/scan?symbols="
+    )
+
+    assert response.status_code == 422
+
+def test_scan_rejects_symbols_with_only_separators() -> None:
+    response = client.get(
+        "/scan?symbols=,%20,%20,"
+    )
+
+    assert response.status_code == 422
+
+def test_scan_ignores_empty_symbol_entries() -> None:
+    response = client.get(
+        "/scan?symbols=ASELS,,TUPRS"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["symbols"] == [
+        "ASELS",
+        "TUPRS",
+    ]
+
+def test_scan_removes_duplicate_symbols() -> None:
+    response = client.get(
+        "/scan?symbols=ASELS,ASELS,TUPRS,ASELS"
+    )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["symbols"] == [
+        "ASELS",
+        "TUPRS",
+    ]
