@@ -63,9 +63,6 @@ def main() -> None:
 
     # -------------------------------------------------
     # Technical indicators
-    #
-    # Use the same calculator as ScannerEngine.
-    # This also removes incomplete OHLC rows.
     # -------------------------------------------------
 
     df = add_indicators(raw_df)
@@ -257,20 +254,18 @@ def main() -> None:
         )
 
         if result.kap_has_news:
-                kap_status = (
-                    f"✓ "
-                    f"[{result.kap_importance}] "
-                    f"{result.kap_title} "
-                    f"[matched: {result.kap_reason}]"
+            kap_status = (
+                f"✓ "
+                f"[{result.kap_importance}] "
+                f"{result.kap_title}"
             )
 
         elif result.kap_importance == "UNAVAILABLE":
             kap_status = (
-                    f"✓ "
-                    f"[{result.kap_importance}] "
-                    f"{result.kap_title} "
-                    f"[matched: {result.kap_reason}]"
-                    )       
+                f"! "
+                f"[UNAVAILABLE] "
+                f"{result.kap_title}"
+            )
 
         else:
             kap_status = "✗"
@@ -299,7 +294,6 @@ def main() -> None:
             f"TOTAL:{result.weighted_score:>3}/100 "
             f"{result.rating} "
             f"KAP:{kap_status}"
-            
         )
 
 

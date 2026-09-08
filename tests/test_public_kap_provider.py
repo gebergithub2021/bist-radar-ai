@@ -282,3 +282,152 @@ def test_disk_cache_is_reused_across_provider_instances(
     )
 
     assert second == first
+
+def test_splits_range_when_kap_returns_2000_records(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+    ) -> None:
+    provider = PublicKapProvider(
+        cache_dir=str(tmp_path),
+        )
+
+    calls: list[tuple[datetime, datetime]] = []
+
+    def fake_fetch_range(
+        start: datetime,
+        end: datetime,
+    ) -> list[dict]:
+        calls.append(
+            (
+                start,
+                end,
+            )
+        )
+
+        day_count = (
+            end.date() - start.date()
+        ).days + 1
+
+        if day_count > 1:
+            return [
+                {
+                    "publishDate": "27.08.2026 12:00:00",
+                    "stockCodes": "ASELS",
+                    "subject": "Test",
+                    "summary": "",
+                    "disclosureIndex": index,
+                }
+                for index in range(2000)
+            ]
+
+        return [
+            {
+                "publishDate": start.strftime(
+                    "%d.%m.%Y 12:00:00"
+                ),
+                "stockCodes": "ASELS",
+                "subject": "Test",
+                "summary": "",
+                "disclosureIndex": int(
+                    start.strftime("%Y%m%d")
+                ),
+            }
+        ]
+
+    monkeypatch.setattr(
+        provider,
+        "_fetch_raw_disclosures_for_range",
+        fake_fetch_range,
+    )
+
+    start = datetime(
+        2026,
+        8,
+        26,
+    )
+
+    end = datetime(
+        2026,
+        8,
+        27,
+        23,
+        59,
+        59,
+    )
+
+    disclosures = provider._fetch_raw_disclosures(
+        start=start,
+        end=end,
+    )
+
+    assert len(disclosures) == 2
+    assert len(calls) == 3
+
+def test_uses_separate_disk_cache_for_each_chunk(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+    ) -> None:
+    provider = PublicKapProvider(
+        cache_dir=str(tmp_path),
+    )
+
+    calls: list[tuple[datetime, datetime]] = []
+
+    def fake_fetch_range(
+        start: datetime,
+        end: datetime,
+    ) -> list[dict]:
+        calls.append((start, end))
+
+        return [
+            {
+                "publishDate": start.strftime(
+                    "%d.%m.%Y 12:00:00"
+                ),
+                "stockCodes": "ASELS",
+                "subject": "Test",
+                "summary": "",
+                "disclosureIndex": int(
+                    start.strftime("%Y%m%d")
+                ),
+            }
+        ]
+
+    monkeypatch.setattr(
+        provider,
+        "_fetch_raw_disclosures_for_range",
+        fake_fetch_range,
+    )
+
+    start = datetime(
+        2026,
+        8,
+        1,
+    )
+
+    end = datetime(
+        2026,
+        8,
+        15,
+        23,
+        59,
+        59,
+    )
+
+    provider._fetch_raw_disclosures(
+        start=start,
+        end=end,
+    )
+
+    cache_files = sorted(
+        path.name
+        for path in tmp_path.glob("*.json")
+    )
+
+    assert cache_files == [
+        "disclosures_2026-08-01_2026-08-07.json",
+        "disclosures_2026-08-08_2026-08-14.json",
+        "disclosures_2026-08-15_2026-08-15.json",
+    ]
+
+    assert len(calls) == 3

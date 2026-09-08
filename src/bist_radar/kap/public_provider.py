@@ -15,6 +15,10 @@ from bist_radar.kap.models import KapDisclosure
 from bist_radar.kap.provider import KapProvider
 
 
+KAP_PUBLIC_LIMIT = 2000
+CACHE_CHUNK_DAYS = 7
+
+
 class PublicKapProvider(KapProvider):
     """Read disclosures from KAP's public website."""
 
@@ -25,12 +29,15 @@ class PublicKapProvider(KapProvider):
         cache_dir: str = ".cache/kap",
     ) -> None:
         if not base_url.strip():
-            raise ValueError("base_url cannot be empty.")
+            raise ValueError(
+                "base_url cannot be empty."
+            )
 
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
         self.cache_dir = Path(cache_dir)
+
         self.cache_dir.mkdir(
             parents=True,
             exist_ok=True,
@@ -46,7 +53,7 @@ class PublicKapProvider(KapProvider):
         start: datetime,
         end: datetime,
     ) -> list[dict]:
-        """Fetch raw disclosures for a single date range."""
+        """Fetch raw disclosures for one date range."""
 
         url = (
             f"{self.base_url}"
@@ -54,8 +61,12 @@ class PublicKapProvider(KapProvider):
         )
 
         payload = {
-            "fromDate": start.strftime("%Y-%m-%d"),
-            "toDate": end.strftime("%Y-%m-%d"),
+            "fromDate": start.strftime(
+                "%Y-%m-%d"
+            ),
+            "toDate": end.strftime(
+                "%Y-%m-%d"
+            ),
             "mkkMemberOidList": [],
             "subjectList": [],
         }
@@ -64,7 +75,8 @@ class PublicKapProvider(KapProvider):
             "Accept": "application/json",
             "Content-Type": "application/json",
             "Referer": (
-                f"{self.base_url}/tr/bildirim-sorgu"
+                f"{self.base_url}"
+                "/tr/bildirim-sorgu"
             ),
             "User-Agent": "BistRadarAI/0.1",
         }
@@ -92,15 +104,90 @@ class PublicKapProvider(KapProvider):
 
         return data
 
+    def _fetch_with_adaptive_split(
+        self,
+        start: datetime,
+        end: datetime,
+    ) -> list[dict]:
+        """Fetch range and split if KAP reaches its limit."""
+
+        data = (
+            self._fetch_raw_disclosures_for_range(
+                start=start,
+                end=end,
+            )
+        )
+
+        if len(data) < KAP_PUBLIC_LIMIT:
+            return data
+
+        # A single day cannot be split further
+        # using the public date-based endpoint.
+        if start.date() >= end.date():
+            return data
+
+        total_days = (
+            end.date() - start.date()
+        ).days
+
+        midpoint_date = (
+            start.date()
+            + timedelta(
+                days=total_days // 2
+            )
+        )
+
+        left_start = datetime.combine(
+            start.date(),
+            datetime.min.time(),
+        )
+
+        left_end = datetime.combine(
+            midpoint_date,
+            datetime.max.time(),
+        )
+
+        right_start = datetime.combine(
+            midpoint_date
+            + timedelta(days=1),
+            datetime.min.time(),
+        )
+
+        right_end = datetime.combine(
+            end.date(),
+            datetime.max.time(),
+        )
+
+        left_data = (
+            self._fetch_with_adaptive_split(
+                start=left_start,
+                end=left_end,
+            )
+        )
+
+        right_data = (
+            self._fetch_with_adaptive_split(
+                start=right_start,
+                end=right_end,
+            )
+        )
+
+        return left_data + right_data
+
     def _build_cache_path(
         self,
         start: datetime,
         end: datetime,
     ) -> Path:
-        """Build disk-cache path for the requested range."""
+        """Build cache path for one chunk."""
 
-        start_text = start.strftime("%Y-%m-%d")
-        end_text = end.strftime("%Y-%m-%d")
+        start_text = start.strftime(
+            "%Y-%m-%d"
+        )
+
+        end_text = end.strftime(
+            "%Y-%m-%d"
+        )
 
         filename = (
             f"disclosures_"
@@ -115,22 +202,28 @@ class PublicKapProvider(KapProvider):
         start: datetime,
         end: datetime,
     ) -> list[dict] | None:
-        """Load cached disclosures from disk if available."""
+        """Load one chunk from disk cache."""
 
-        cache_path = self._build_cache_path(
-            start=start,
-            end=end,
+        cache_path = (
+            self._build_cache_path(
+                start=start,
+                end=end,
+            )
         )
 
         if not cache_path.exists():
             return None
 
         try:
-            content = cache_path.read_text(
-                encoding="utf-8",
+            content = (
+                cache_path.read_text(
+                    encoding="utf-8",
+                )
             )
 
-            data = json.loads(content)
+            data = json.loads(
+                content
+            )
 
         except (
             OSError,
@@ -149,11 +242,13 @@ class PublicKapProvider(KapProvider):
         end: datetime,
         data: list[dict],
     ) -> None:
-        """Save disclosures to disk cache."""
+        """Save one chunk to disk cache."""
 
-        cache_path = self._build_cache_path(
-            start=start,
-            end=end,
+        cache_path = (
+            self._build_cache_path(
+                start=start,
+                end=end,
+            )
         )
 
         content = json.dumps(
@@ -167,12 +262,12 @@ class PublicKapProvider(KapProvider):
             encoding="utf-8",
         )
 
-    def _fetch_raw_disclosures(
+    def _get_chunk(
         self,
         start: datetime,
         end: datetime,
     ) -> list[dict]:
-        """Fetch disclosures using memory and disk cache."""
+        """Return one chunk using memory and disk cache."""
 
         cache_key = (
             start.strftime("%Y-%m-%d"),
@@ -180,31 +275,67 @@ class PublicKapProvider(KapProvider):
         )
 
         if cache_key in self._cache:
-            return self._cache[cache_key]
+            return self._cache[
+                cache_key
+            ]
 
-        disk_data = self._load_disk_cache(
-            start=start,
-            end=end,
+        disk_data = (
+            self._load_disk_cache(
+                start=start,
+                end=end,
+            )
         )
 
         if disk_data is not None:
-            self._cache[cache_key] = disk_data
+            self._cache[
+                cache_key
+            ] = disk_data
 
             return disk_data
 
+        data = (
+            self._fetch_with_adaptive_split(
+                start=start,
+                end=end,
+            )
+        )
+
+        self._cache[
+            cache_key
+        ] = data
+
+        self._save_disk_cache(
+            start=start,
+            end=end,
+            data=data,
+        )
+
+        return data
+
+    def _fetch_raw_disclosures(
+        self,
+        start: datetime,
+        end: datetime,
+    ) -> list[dict]:
+        """Fetch disclosures using 7-day cached chunks."""
+
         all_disclosures: list[dict] = []
 
-        current = start
+        current_date = start.date()
+        final_date = end.date()
 
-        while current.date() <= end.date():
-            chunk_start = datetime.combine(
-                current.date(),
-                datetime.min.time(),
+        while current_date <= final_date:
+            chunk_end_date = min(
+                current_date
+                + timedelta(
+                    days=CACHE_CHUNK_DAYS - 1
+                ),
+                final_date,
             )
 
-            chunk_end_date = min(
-                current.date() + timedelta(days=6),
-                end.date(),
+            chunk_start = datetime.combine(
+                current_date,
+                datetime.min.time(),
             )
 
             chunk_end = datetime.combine(
@@ -212,32 +343,19 @@ class PublicKapProvider(KapProvider):
                 datetime.max.time(),
             )
 
-            chunk = (
-                self._fetch_raw_disclosures_for_range(
-                    start=chunk_start,
-                    end=chunk_end,
-                )
+            chunk = self._get_chunk(
+                start=chunk_start,
+                end=chunk_end,
             )
 
             all_disclosures.extend(
                 chunk
             )
 
-            current = datetime.combine(
+            current_date = (
                 chunk_end_date
-                + timedelta(days=1),
-                datetime.min.time(),
+                + timedelta(days=1)
             )
-
-        self._cache[cache_key] = (
-            all_disclosures
-        )
-
-        self._save_disk_cache(
-            start=start,
-            end=end,
-            data=all_disclosures,
-        )
 
         return all_disclosures
 
@@ -247,7 +365,7 @@ class PublicKapProvider(KapProvider):
         start: datetime,
         end: datetime,
     ) -> list[KapDisclosure]:
-        """Return disclosures matching the requested stock symbol."""
+        """Return disclosures for the requested stock."""
 
         raw_disclosures = (
             self._fetch_raw_disclosures(
@@ -258,7 +376,9 @@ class PublicKapProvider(KapProvider):
 
         symbol = symbol.upper()
 
-        results: list[KapDisclosure] = []
+        results: list[
+            KapDisclosure
+        ] = []
 
         for item in raw_disclosures:
             stock_codes = item.get(
@@ -270,7 +390,8 @@ class PublicKapProvider(KapProvider):
 
             codes = {
                 code.strip().upper()
-                for code in stock_codes.split(",")
+                for code
+                in stock_codes.split(",")
                 if code.strip()
             }
 
@@ -281,8 +402,10 @@ class PublicKapProvider(KapProvider):
                 "publishDate"
             )
 
-            disclosure_index = item.get(
-                "disclosureIndex"
+            disclosure_index = (
+                item.get(
+                    "disclosureIndex"
+                )
             )
 
             if (
@@ -292,9 +415,11 @@ class PublicKapProvider(KapProvider):
                 continue
 
             try:
-                published_at = datetime.strptime(
-                    publish_date,
-                    "%d.%m.%Y %H:%M:%S",
+                published_at = (
+                    datetime.strptime(
+                        publish_date,
+                        "%d.%m.%Y %H:%M:%S",
+                    )
                 )
 
             except ValueError:
@@ -310,13 +435,21 @@ class PublicKapProvider(KapProvider):
                 f"{disclosure_id}"
             )
 
-            disclosure = KapDisclosure(
-                disclosure_id=disclosure_id,
-                symbol=symbol,
-                published_at=published_at,
-                title=item.get("subject") or "",
-                summary=item.get("summary") or "",
-                url=url,
+            disclosure = (
+                KapDisclosure(
+                    disclosure_id=disclosure_id,
+                    symbol=symbol,
+                    published_at=published_at,
+                    title=(
+                        item.get("subject")
+                        or ""
+                    ),
+                    summary=(
+                        item.get("summary")
+                        or ""
+                    ),
+                    url=url,
+                )
             )
 
             results.append(

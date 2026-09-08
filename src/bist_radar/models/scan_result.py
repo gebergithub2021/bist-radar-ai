@@ -18,24 +18,27 @@ class ScanResult:
     macd: float = 0.0
     signal: float = 0.0
     histogram: float = 0.0
+
     volume: float = 0.0
     volume_sma20: float = 0.0
     volume_ratio: float = 0.0
     volume_confirms_trend: bool = False
+
     momentum5: float = 0.0
     momentum20: float = 0.0
+
     above_ema20: bool = False
     ema_above_sma20: bool = False
+
     high_52w: float = 0.0
     low_52w: float = 0.0
     position_52w: float = 0.0
     high_52w_distance: float = 0.0
+
     atr14: float = 0.0
     atr_percent: float = 0.0
     adx14: float = 0.0
-    kap_has_news: bool = False
-    kap_importance: str = "NONE"
-    kap_title: str = ""
+
     kap_has_news: bool = False
     kap_importance: str = "NONE"
     kap_title: str = ""
@@ -72,6 +75,7 @@ class ScanResult:
     @property
     def score(self) -> int:
         """Return the number of passed rules."""
+
         return sum(
             [
                 self.above_sma20,
@@ -83,6 +87,7 @@ class ScanResult:
     @property
     def passed(self) -> bool:
         """Return True when all rules pass."""
+
         return self.score == 3
 
     @property
@@ -90,11 +95,11 @@ class ScanResult:
         """Return weighted score out of 100."""
 
         return (
-        self.sma_score
-        + self.rsi_score
-        + self.macd_score
-    )
-    
+            self.sma_score
+            + self.rsi_score
+            + self.macd_score
+        )
+
     @property
     def sma_score(self) -> int:
         """Return SMA score out of 30."""
@@ -103,9 +108,9 @@ class ScanResult:
             return 0
 
         distance_percent = (
-        (self.close - self.sma20)
-        / self.sma20
-        * 100
+            (self.close - self.sma20)
+            / self.sma20
+            * 100
         )
 
         if distance_percent <= 0:
@@ -136,6 +141,7 @@ class ScanResult:
             return 30
 
         return 15
+
     @property
     def rating(self) -> str:
         """Return rating based on weighted score."""
@@ -152,6 +158,7 @@ class ScanResult:
             return "WATCH"
 
         return "FAIL"
+
     @property
     def momentum5_comment(self) -> str:
         """Return short-term momentum comment."""
@@ -160,16 +167,15 @@ class ScanResult:
             return "STRONG POSITIVE"
 
         if self.momentum5 >= 1:
-         return "POSITIVE"
+            return "POSITIVE"
 
         if self.momentum5 > -1:
-         return "NEUTRAL"
+            return "NEUTRAL"
 
         if self.momentum5 > -5:
             return "NEGATIVE"
 
         return "STRONG NEGATIVE"
-
 
     @property
     def momentum20_comment(self) -> str:
@@ -188,7 +194,7 @@ class ScanResult:
             return "NEGATIVE"
 
         return "STRONG NEGATIVE"
-    
+
     @property
     def position_52w_comment(self) -> str:
         """Return 52-week position comment."""
@@ -206,15 +212,16 @@ class ScanResult:
 
     @property
     def volatility_comment(self) -> str:
-            """Return volatility comment based on ATR percentage."""
+        """Return volatility comment based on ATR percentage."""
 
-            if self.atr_percent < 2.5:
-                return "LOW"
+        if self.atr_percent < 2.5:
+            return "LOW"
 
-            if self.atr_percent < 4.0:
-                return "MEDIUM"
+        if self.atr_percent < 4.0:
+            return "MEDIUM"
 
-            return "HIGH"
+        return "HIGH"
+
     @property
     def adx_comment(self) -> str:
         """Return trend strength comment based on ADX."""
