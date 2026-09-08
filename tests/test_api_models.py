@@ -88,3 +88,29 @@ def test_scan_openapi_uses_scan_response() -> None:
     assert response_schema == {
         "$ref": "#/components/schemas/ScanResponse"
     }
+
+def test_stock_detail_openapi_uses_scan_item_response() -> None:
+    client = TestClient(app)
+
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+
+    schema = response.json()
+
+    stock_schema = schema[
+        "paths"
+    ][
+        "/stocks/{symbol}"
+    ][
+        "get"
+    ]
+
+    response_schema = (
+        stock_schema["responses"]["200"]
+        ["content"]["application/json"]["schema"]
+    )
+
+    assert response_schema == {
+        "$ref": "#/components/schemas/ScanItemResponse"
+    }
