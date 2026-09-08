@@ -220,6 +220,12 @@ def stock_detail(
                 result.kap_reason = "service error"
                 result.kap_url = ""
 
+    if not scan_results:
+        raise HTTPException(
+        status_code=404,
+        detail="Stock data not found.",
+    )
+
     result = scan_results[0]
 
     return scan_result_to_dict(result)

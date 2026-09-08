@@ -169,3 +169,132 @@ def test_stock_detail_returns_kap_data() -> None:
             "tr/Bildirim/1655510"
         ),
     }
+
+class EmptyStockDetailScannerEngine:
+    def get_ranked_scan_results(
+        self,
+        symbols: list[str],
+        start: date,
+        end: date,
+    ) -> list[ScanResult]:
+        return []
+
+
+def override_empty_stock_detail_scanner() -> (
+    EmptyStockDetailScannerEngine
+):
+    return EmptyStockDetailScannerEngine()
+
+
+def test_stock_detail_returns_404_when_no_result() -> None:
+    original_override = app.dependency_overrides[
+        get_scanner_engine
+    ]
+
+    app.dependency_overrides[
+        get_scanner_engine
+    ] = override_empty_stock_detail_scanner
+
+    try:
+        response = client.get(
+            "/stocks/UNKNOWN"
+        )
+
+        assert response.status_code == 404
+
+        assert response.json()["detail"] == (
+            "Stock data not found."
+        )
+    finally:
+        app.dependency_overrides[
+            get_scanner_engine
+        ] = original_override
+
+class FailingStockDetailScannerEngine:
+    def get_ranked_scan_results(
+        self,
+        symbols: list[str],
+        start: date,
+        end: date,
+    ) -> list[ScanResult]:
+        raise RuntimeError("Market data error")
+
+
+def override_failing_stock_detail_scanner() -> (
+    FailingStockDetailScannerEngine
+):
+    return FailingStockDetailScannerEngine()
+
+
+def test_stock_detail_returns_503_when_scanner_fails() -> None:
+    original_override = app.dependency_overrides[
+        get_scanner_engine
+    ]
+
+    app.dependency_overrides[
+        get_scanner_engine
+    ] = override_failing_stock_detail_scanner
+
+    try:
+        response = client.get(
+            "/stocks/ASELS"
+        )
+
+        assert response.status_code == 503
+
+        assert response.json()["detail"] == (
+            "Market data service is temporarily unavailable."
+        )
+    finally:
+        app.dependency_overrides[
+            get_scanner_engine
+        ] = original_override
+
+class FailingStockDetailKapEnricher:
+    def enrich_all(
+        self,
+        results: list[ScanResult],
+        start: datetime,
+        end: datetime,
+    ) -> list[ScanResult]:
+        raise RuntimeError("KAP service error")
+
+
+def override_failing_stock_detail_kap_enricher() -> (
+    FailingStockDetailKapEnricher
+):
+    return FailingStockDetailKapEnricher()
+
+
+def test_stock_detail_preserves_technical_result_when_kap_fails() -> None:
+    original_override = app.dependency_overrides[
+        get_kap_enricher
+    ]
+
+    app.dependency_overrides[
+        get_kap_enricher
+    ] = override_failing_stock_detail_kap_enricher
+
+    try:
+        response = client.get(
+            "/stocks/ASELS"
+        )
+
+        assert response.status_code == 200
+
+        result = response.json()
+
+        assert result["symbol"] == "ASELS"
+        assert result["score"] == 90
+        assert result["rating"] == "STRONG"
+
+        assert result["kap"] == {
+            "has_news": False,
+            "importance": "UNAVAILABLE",
+            "title": "KAP service unavailable",
+            "url": "",
+        }
+    finally:
+        app.dependency_overrides[
+            get_kap_enricher
+        ] = original_override
