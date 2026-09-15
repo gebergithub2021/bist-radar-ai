@@ -1,5 +1,8 @@
 """BIST 100 stock universe."""
 
+from bist_radar.universe.borsa_istanbul_provider import (
+    BorsaIstanbulUniverseProvider,
+)
 from bist_radar.universe.provider import UniverseProvider
 
 
@@ -10,12 +13,12 @@ class Bist100Universe(UniverseProvider):
         self,
         provider: UniverseProvider | None = None,
     ) -> None:
+        if provider is None:
+            provider = BorsaIstanbulUniverseProvider()
+
         self.provider = provider
 
     def get_symbols(self) -> list[str]:
         """Return BIST 100 stock symbols."""
-
-        if self.provider is None:
-            return []
 
         return self.provider.get_symbols()

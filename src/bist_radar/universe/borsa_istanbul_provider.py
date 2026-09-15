@@ -16,6 +16,13 @@ class BorsaIstanbulUniverseProvider(UniverseProvider):
         self,
         snapshot_path: Path | None = None,
     ) -> None:
+        if snapshot_path is None:
+            snapshot_path = (
+                Path(__file__).parent
+                / "data"
+                / "bist100_snapshot.json"
+            )
+
         self.snapshot_path = snapshot_path
         self.snapshot_date: date | None = None
 
@@ -35,9 +42,6 @@ class BorsaIstanbulUniverseProvider(UniverseProvider):
 
     def _fetch_symbols(self) -> list[str]:
         """Read raw BIST 100 symbols from JSON snapshot."""
-
-        if self.snapshot_path is None:
-            return []
 
         content = self.snapshot_path.read_text(
             encoding="utf-8",

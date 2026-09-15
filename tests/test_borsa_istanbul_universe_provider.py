@@ -162,3 +162,21 @@ def test_provider_reads_snapshot_date_from_file(
         9,
         15,
     )
+
+def test_provider_uses_default_bist100_snapshot() -> None:
+    provider = BorsaIstanbulUniverseProvider()
+
+    symbols = provider.get_symbols()
+
+    assert len(symbols) == 100
+    assert len(set(symbols)) == 100
+
+    assert "ASELS" in symbols
+    assert "THYAO" in symbols
+    assert "TUPRS" in symbols
+
+    assert provider.snapshot_date == date(
+        2026,
+        9,
+        15,
+    )

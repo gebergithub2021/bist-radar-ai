@@ -33,3 +33,15 @@ def test_bist100_universe_uses_provider() -> None:
         "THYAO",
         "TUPRS",
     ]
+    
+def test_bist100_universe_uses_default_provider() -> None:
+    universe = Bist100Universe()
+
+    symbols = universe.get_symbols()
+
+    assert len(symbols) == 100
+    assert len(set(symbols)) == 100
+
+    assert "ASELS" in symbols
+    assert "THYAO" in symbols
+    assert "TUPRS" in symbols
