@@ -137,11 +137,14 @@ class ScannerEngine:
         results = []
 
         for symbol in symbols:
-            result = self.get_scan_result(
+            try:
+                result = self.get_scan_result(
                 symbol,
                 start,
                 end,
             )
+            except RuntimeError:
+                continue
 
             results.append(result)
 

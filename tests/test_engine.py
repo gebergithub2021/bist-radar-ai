@@ -240,3 +240,45 @@ def test_get_ranked_scan_results_sorts_by_weighted_score_descending():
         scores,
         reverse=True,
     )
+
+def test_get_scan_results_skips_symbol_when_provider_fails():
+    """One provider failure should not stop the whole scan."""
+
+    class PartiallyFailingProvider(FakeProvider):
+        def get_history(
+            self,
+            symbol: str,
+            start,
+            end,
+        ) -> pd.DataFrame:
+            if symbol == "BROKEN":
+                raise RuntimeError(
+                    "Market data unavailable"
+                )
+
+            close = list(range(100, 140))
+
+            return make_market_df(
+                close=close,
+            )
+
+    provider = PartiallyFailingProvider()
+    engine = ScannerEngine(provider)
+
+    results = engine.get_scan_results(
+        [
+            "THYAO",
+            "BROKEN",
+            "ASELS",
+        ],
+        None,
+        None,
+    )
+
+    assert [
+        result.symbol
+        for result in results
+    ] == [
+        "THYAO",
+        "ASELS",
+    ]
