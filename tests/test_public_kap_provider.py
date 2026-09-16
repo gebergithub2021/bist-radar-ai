@@ -453,3 +453,14 @@ def test_public_kap_provider_repairs_mojibake_title() -> None:
     assert repaired == (
         "Katılım Finansı İlkeleri Bilgi Formu"
     )
+
+def test_public_kap_provider_repairs_live_kap_title() -> None:
+    provider = PublicKapProvider()
+
+    repaired = provider._repair_text(
+        "2026 2.Ã§eyrek finansal tablolarÄ±n aÃ§Ä±klanmasÄ±"
+    )
+
+    assert repaired == (
+        "2026 2.çeyrek finansal tabloların açıklanması"
+    )
