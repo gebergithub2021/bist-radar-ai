@@ -13,6 +13,10 @@ from bist_radar.kap.enricher import KapEnricher
 from bist_radar.kap.factory import create_kap_provider
 from bist_radar.kap.service import KapService
 from bist_radar.scanner.engine import ScannerEngine
+from bist_radar.api.scan_service import build_scan_results
+from bist_radar.api.bist100_scan_service import (
+    build_bist100_candidates,
+)
 
 
 app = FastAPI(
@@ -162,3 +166,26 @@ def stock_detail(
     result = scan_results[0]
 
     return scan_result_to_dict(result)
+
+@app.get("/bist100/candidates")
+def bist100_candidates(
+        engine: ScannerEngine = Depends(get_scanner_engine),
+        kap_enricher: KapEnricher | None = Depends(get_kap_enricher),
+    ) -> dict[str, object]:
+        """Return BIST 100 candidates with technical score >= 85."""
+
+        results = build_bist100_candidates(
+            engine=engine,
+            kap_enricher=kap_enricher,
+        )
+
+        serialized_results = [
+            scan_result_to_dict(result)
+            for result in results
+        ]
+
+        return {
+            "minimum_score": 85,
+            "count": len(serialized_results),
+            "results": serialized_results,
+        }
