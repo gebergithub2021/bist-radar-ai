@@ -150,3 +150,94 @@ def test_bist100_candidates_returns_empty_when_none_reach_threshold() -> None:
     )
 
     assert results == []
+
+def test_bist100_candidates_enriches_only_selected_candidates() -> None:
+    class FakeKapEnricher:
+        def __init__(self) -> None:
+            self.received_symbols: list[str] = []
+
+        def enrich_all(self, results, start, end):
+            self.received_symbols = [
+                result.symbol
+                for result in results
+            ]
+            return results
+
+    def fake_build_scan_results(
+        engine,
+        kap_enricher,
+        symbols: list[str],
+    ) -> list[FakeResult]:
+        # Teknik tarama sırasında KAP kullanılmamalı.
+        assert kap_enricher is None
+
+        return [
+            FakeResult("THYAO", 100),
+            FakeResult("ASELS", 90),
+            FakeResult("TUPRS", 85),
+            FakeResult("EREGL", 84),
+            FakeResult("KRDMD", 70),
+        ]
+
+    kap_enricher = FakeKapEnricher()
+
+    results = build_bist100_candidates(
+        engine=object(),
+        kap_enricher=kap_enricher,
+        universe=FakeUniverseProvider(),
+        scan_builder=fake_build_scan_results,
+    )
+
+    assert [result.symbol for result in results] == [
+        "THYAO",
+        "ASELS",
+        "TUPRS",
+    ]
+
+    assert kap_enricher.received_symbols == [
+        "THYAO",
+        "ASELS",
+        "TUPRS",
+    ]
+
+def test_bist100_candidates_survive_kap_failure() -> None:
+    class FailingKapEnricher:
+        def enrich_all(self, results, start, end):
+            raise RuntimeError("KAP unavailable")
+
+    def fake_build_scan_results(
+        engine,
+        kap_enricher,
+        symbols: list[str],
+    ) -> list[FakeResult]:
+        assert kap_enricher is None
+
+        return [
+            FakeResult("THYAO", 100),
+            FakeResult("ASELS", 90),
+            FakeResult("TUPRS", 85),
+            FakeResult("EREGL", 84),
+        ]
+
+    results = build_bist100_candidates(
+        engine=object(),
+        kap_enricher=FailingKapEnricher(),
+        universe=FakeUniverseProvider(),
+        scan_builder=fake_build_scan_results,
+    )
+
+    assert [result.symbol for result in results] == [
+        "THYAO",
+        "ASELS",
+        "TUPRS",
+    ]
+
+    assert all(
+        result.kap_importance == "UNAVAILABLE"
+        for result in results
+    )
+
+    assert all(
+        result.kap_title == "KAP service unavailable"
+        for result in results
+    )
