@@ -6,30 +6,20 @@ from typing import TypeVar
 T = TypeVar("T")
 
 
-def select_top_candidates(
+def select_candidates_by_score(
     results: list[T],
-    limit: int = 5,
+    minimum_score: int = 85,
 ) -> list[T]:
-    """Return top candidates, including ties at the cutoff."""
+    """Return all candidates meeting the minimum technical score."""
 
-    ranked = sorted(
-        results,
+    selected = [
+        result
+        for result in results
+        if result.weighted_score >= minimum_score
+    ]
+
+    return sorted(
+        selected,
         key=lambda result: result.weighted_score,
         reverse=True,
     )
-
-    if limit <= 0:
-        return []
-
-    if len(ranked) <= limit:
-        return ranked
-
-    cutoff_score = ranked[
-        limit - 1
-    ].weighted_score
-
-    return [
-        result
-        for result in ranked
-        if result.weighted_score >= cutoff_score
-    ]

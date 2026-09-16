@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from bist_radar.api.bist100_scan_service import (
     build_bist100_scan_results,
-    build_bist100_top_candidates,
+    build_bist100_candidates,
 )
 from bist_radar.universe.provider import UniverseProvider
 
@@ -18,6 +18,12 @@ class FakeUniverseProvider(UniverseProvider):
             "ASELS",
             "TUPRS",
         ]
+
+
+@dataclass
+class FakeResult:
+    symbol: str
+    weighted_score: int
 
 
 def test_bist100_scan_service_uses_universe_symbols() -> None:
@@ -46,71 +52,16 @@ def test_bist100_scan_service_uses_universe_symbols() -> None:
 
     assert captured["engine"] is fake_engine
     assert captured["kap_enricher"] is fake_kap_enricher
-
     assert captured["symbols"] == [
         "THYAO",
         "ASELS",
         "TUPRS",
     ]
-
     assert results == []
 
 
-def test_bist100_scan_service_returns_top_candidates() -> None:
-    @dataclass
-    class FakeResult:
-        symbol: str
-        weighted_score: int
-
-    def fake_build_scan_results(
-        engine,
-        kap_enricher,
-        symbols: list[str],
-    ) -> list[FakeResult]:
-        assert symbols == [
-            "THYAO",
-            "ASELS",
-            "TUPRS",
-        ]
-
-        return [
-            FakeResult("THYAO", 70),
-            FakeResult("ASELS", 95),
-            FakeResult("TUPRS", 82),
-        ]
-
-    fake_engine = object()
-    universe = FakeUniverseProvider()
-
-    results = build_bist100_top_candidates(
-        engine=fake_engine,
-        kap_enricher=None,
-        universe=universe,
-        scan_builder=fake_build_scan_results,
-    )
-
-    assert [result.symbol for result in results] == [
-        "ASELS",
-        "TUPRS",
-        "THYAO",
-    ]
-
-    assert [
-        result.weighted_score
-        for result in results
-    ] == [
-        95,
-        82,
-        70,
-    ]
-
-def test_bist100_top_candidates_includes_ties_at_cutoff() -> None:
-    @dataclass
-    class FakeResult:
-        symbol: str
-        weighted_score: int
-
-    class LargeFakeUniverseProvider(UniverseProvider):
+def test_bist100_candidates_returns_all_results_at_or_above_85() -> None:
+    class CandidateUniverseProvider(UniverseProvider):
         def get_symbols(self) -> list[str]:
             return [
                 "AAA",
@@ -118,8 +69,6 @@ def test_bist100_top_candidates_includes_ties_at_cutoff() -> None:
                 "CCC",
                 "DDD",
                 "EEE",
-                "FFF",
-                "GGG",
             ]
 
     def fake_build_scan_results(
@@ -129,29 +78,75 @@ def test_bist100_top_candidates_includes_ties_at_cutoff() -> None:
     ) -> list[FakeResult]:
         return [
             FakeResult("AAA", 100),
-            FakeResult("BBB", 100),
-            FakeResult("CCC", 100),
-            FakeResult("DDD", 100),
-            FakeResult("EEE", 100),
-            FakeResult("FFF", 100),
-            FakeResult("GGG", 90),
+            FakeResult("BBB", 90),
+            FakeResult("CCC", 85),
+            FakeResult("DDD", 84),
+            FakeResult("EEE", 70),
         ]
 
-    results = build_bist100_top_candidates(
+    results = build_bist100_candidates(
         engine=object(),
         kap_enricher=None,
-        universe=LargeFakeUniverseProvider(),
+        universe=CandidateUniverseProvider(),
         scan_builder=fake_build_scan_results,
-        limit=5,
     )
-
-    assert len(results) == 6
 
     assert [result.symbol for result in results] == [
         "AAA",
         "BBB",
         "CCC",
-        "DDD",
-        "EEE",
-        "FFF",
     ]
+
+    assert [result.weighted_score for result in results] == [
+        100,
+        90,
+        85,
+    ]
+
+
+def test_bist100_candidates_accepts_custom_minimum_score() -> None:
+    def fake_build_scan_results(
+        engine,
+        kap_enricher,
+        symbols: list[str],
+    ) -> list[FakeResult]:
+        return [
+            FakeResult("THYAO", 100),
+            FakeResult("ASELS", 90),
+            FakeResult("TUPRS", 85),
+        ]
+
+    results = build_bist100_candidates(
+        engine=object(),
+        kap_enricher=None,
+        universe=FakeUniverseProvider(),
+        scan_builder=fake_build_scan_results,
+        minimum_score=90,
+    )
+
+    assert [result.symbol for result in results] == [
+        "THYAO",
+        "ASELS",
+    ]
+
+
+def test_bist100_candidates_returns_empty_when_none_reach_threshold() -> None:
+    def fake_build_scan_results(
+        engine,
+        kap_enricher,
+        symbols: list[str],
+    ) -> list[FakeResult]:
+        return [
+            FakeResult("THYAO", 80),
+            FakeResult("ASELS", 70),
+            FakeResult("TUPRS", 60),
+        ]
+
+    results = build_bist100_candidates(
+        engine=object(),
+        kap_enricher=None,
+        universe=FakeUniverseProvider(),
+        scan_builder=fake_build_scan_results,
+    )
+
+    assert results == []
