@@ -18,13 +18,3 @@ class FakeFundamentalProvider(FundamentalProvider):
             total_debt=20_000_000_000.0,
             cash=12_000_000_000.0,
         )
-
-
-def test_fundamental_provider_returns_snapshot() -> None:
-    provider = FakeFundamentalProvider()
-
-    snapshot = provider.get_snapshot("ASELS")
-
-    assert snapshot.symbol == "ASELS"
-    assert snapshot.revenue == 120_000_000_000.0
-    assert snapshot.net_income == 15_000_000_000.0

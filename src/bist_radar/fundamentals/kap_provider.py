@@ -27,14 +27,102 @@ class KapFundamentalProvider(FundamentalProvider):
     ) -> FundamentalSnapshot:
         """Build a fundamental snapshot from raw KAP data."""
 
+        scale = self._parse_scale(
+        raw_data.get("scale_text", "TL")
+        )
+
         return FundamentalSnapshot(
             symbol=symbol,
-            revenue=raw_data.get("revenue"),
-            net_income=raw_data.get("net_income"),
-            total_assets=raw_data.get("total_assets"),
-            total_equity=raw_data.get("total_equity"),
-            total_debt=raw_data.get("total_debt"),
-            cash=raw_data.get("cash"),
-            previous_revenue=raw_data.get("previous_revenue"),
-            previous_net_income=raw_data.get("previous_net_income"),
-        )
+            revenue=self._normalize_amount(
+            raw_data.get("revenue"),
+            scale,
+        ),
+        net_income=self._normalize_amount(
+            raw_data.get("net_income"),
+            scale,
+        ),
+        total_assets=self._normalize_amount(
+            raw_data.get("total_assets"),
+            scale,
+        ),
+        total_equity=self._normalize_amount(
+            raw_data.get("total_equity"),
+            scale,
+        ),
+        total_debt=self._normalize_amount(
+            raw_data.get("total_debt"),
+            scale,
+        ),
+        cash=self._normalize_amount(
+            raw_data.get("cash"),
+            scale,
+        ),
+        previous_revenue=self._normalize_amount(
+            raw_data.get("previous_revenue"),
+            scale,
+        ),
+        previous_net_income=self._normalize_amount(
+            raw_data.get("previous_net_income"),
+            scale,
+        ),
+        period_end=raw_data.get("period_end"),
+        previous_period_end=raw_data.get(
+            "previous_period_end"
+        ),
+    )
+    def _normalize_amount(
+        self,
+        value: float | None,
+        scale: int,
+    ) -> float | None:
+        """Normalize a KAP financial amount to TRY."""
+
+        if value is None:
+            return None
+
+        return value * scale
+
+    def _parse_scale(
+        self,
+        scale_text: str,
+    ) -> int:
+        """Parse KAP presentation scale."""
+
+        normalized = scale_text.strip().upper()
+
+        if normalized == "1000 TL":
+            return 1_000
+
+        return 1
+
+def test_kap_fundamental_provider_maps_period_metadata() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_data = {
+        "period_end": "2026-06-30",
+        "previous_period_end": "2025-06-30",
+    }
+
+    snapshot = provider._build_snapshot(
+        symbol="ASELS",
+        raw_data=raw_data,
+    )
+
+    assert snapshot.period_end == "2026-06-30"
+    assert snapshot.previous_period_end == "2025-06-30"
+
+def test_kap_fundamental_provider_maps_period_metadata() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_data = {
+        "period_end": "2026-06-30",
+        "previous_period_end": "2025-06-30",
+    }
+
+    snapshot = provider._build_snapshot(
+        symbol="ASELS",
+        raw_data=raw_data,
+    )
+
+    assert snapshot.period_end == "2026-06-30"
+    assert snapshot.previous_period_end == "2025-06-30"

@@ -80,3 +80,21 @@ def test_fundamental_analysis_result_stores_metrics() -> None:
     assert result.net_income_growth == 25.0
     assert result.debt_to_equity == 0.25
     assert result.net_debt == 8_000_000_000.0
+
+def test_fundamental_snapshot_stores_period_metadata() -> None:
+    snapshot = FundamentalSnapshot(
+        symbol="ASELS",
+        revenue=88_494_252_000.0,
+        net_income=14_449_834_000.0,
+        total_assets=549_748_035_000.0,
+        total_equity=308_524_609_000.0,
+        total_debt=None,
+        cash=None,
+        previous_revenue=None,
+        previous_net_income=None,
+        period_end="2026-06-30",
+        previous_period_end="2025-06-30",
+    )
+
+    assert snapshot.period_end == "2026-06-30"
+    assert snapshot.previous_period_end == "2025-06-30"

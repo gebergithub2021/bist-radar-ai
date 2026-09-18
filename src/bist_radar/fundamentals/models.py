@@ -16,6 +16,8 @@ class FundamentalSnapshot:
     cash: float | None
     previous_revenue: float | None = None
     previous_net_income: float | None = None
+    period_end: str | None = None
+    previous_period_end: str | None = None
 
 @dataclass
 class FundamentalAnalysisResult:
