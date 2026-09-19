@@ -95,34 +95,100 @@ class KapFundamentalProvider(FundamentalProvider):
 
         return 1
 
-def test_kap_fundamental_provider_maps_period_metadata() -> None:
-    provider = KapFundamentalProvider()
+    def _map_financial_rows(
+        self,
+        raw_rows: dict[str, dict[str, float | None]],
+    ) -> dict[str, float | None]:
+        """Map KAP financial rows to internal field names."""
 
-    raw_data = {
-        "period_end": "2026-06-30",
-        "previous_period_end": "2025-06-30",
-    }
+        revenue_row = raw_rows.get(
+            "ifrs-full_Revenue",
+            {},
+        )
 
-    snapshot = provider._build_snapshot(
-        symbol="ASELS",
-        raw_data=raw_data,
-    )
+        net_income_row = raw_rows.get(
+            "ifrs-full_ProfitLoss",
+            {},
+        )
 
-    assert snapshot.period_end == "2026-06-30"
-    assert snapshot.previous_period_end == "2025-06-30"
+        assets_row = raw_rows.get(
+            "ifrs-full_Assets",
+            {},
+        )
 
-def test_kap_fundamental_provider_maps_period_metadata() -> None:
-    provider = KapFundamentalProvider()
+        equity_row = raw_rows.get(
+            "ifrs-full_Equity",
+            {},
+        )
 
-    raw_data = {
-        "period_end": "2026-06-30",
-        "previous_period_end": "2025-06-30",
-    }
+        short_term_borrowings_row = raw_rows.get(
+            "ifrs-full_ShorttermBorrowings",
+            {},
+        )
 
-    snapshot = provider._build_snapshot(
-        symbol="ASELS",
-        raw_data=raw_data,
-    )
+        current_portion_row = raw_rows.get(
+            "ifrs-full_CurrentPortionOfLongtermBorrowings",
+            {},
+        )
 
-    assert snapshot.period_end == "2026-06-30"
-    assert snapshot.previous_period_end == "2025-06-30"
+        long_term_borrowings_row = raw_rows.get(
+            "ifrs-full_LongtermBorrowings",
+            {},
+        )
+
+        short_term_borrowings = short_term_borrowings_row.get("current")
+        current_portion = current_portion_row.get("current")
+        long_term_borrowings = long_term_borrowings_row.get("current")
+
+        if (
+            short_term_borrowings is not None
+            and current_portion is not None
+            and long_term_borrowings is not None
+        ):
+            total_debt = (
+                short_term_borrowings
+                + current_portion
+                + long_term_borrowings
+        )
+        else:
+            total_debt = None
+
+        cash_row = raw_rows.get(
+            "ifrs-full_CashAndCashEquivalents",
+             {},
+        )
+
+        return {
+        "revenue": revenue_row.get("current"),
+        "previous_revenue": revenue_row.get("previous"),
+        "net_income": net_income_row.get("current"),
+        "previous_net_income": net_income_row.get("previous"),
+        "total_assets": assets_row.get("current"),
+        "total_equity": equity_row.get("current"),
+        "short_term_borrowings": short_term_borrowings_row.get("current"),
+        "current_portion_of_long_term_borrowings": (current_portion_row.get("current")),
+        "long_term_borrowings": long_term_borrowings_row.get("current"),
+        "total_debt": total_debt,
+        "cash": cash_row.get("current"),
+        }
+
+    def _build_snapshot_from_rows(
+        self,
+        symbol: str,
+        raw_rows: dict[str, dict[str, float | None]],
+        scale_text: str,
+        period_end: str | None,
+        previous_period_end: str | None,
+    ) -> FundamentalSnapshot:
+        """Build a snapshot from mapped KAP financial rows."""
+
+        raw_data = self._map_financial_rows(raw_rows)
+
+        raw_data["scale_text"] = scale_text
+        raw_data["period_end"] = period_end
+        raw_data["previous_period_end"] = previous_period_end
+
+        return self._build_snapshot(
+            symbol=symbol,
+            raw_data=raw_data,
+        )

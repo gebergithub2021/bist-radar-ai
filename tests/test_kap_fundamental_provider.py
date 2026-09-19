@@ -161,3 +161,218 @@ def test_kap_fundamental_provider_maps_period_metadata() -> None:
 
     assert snapshot.period_end == "2026-06-30"
     assert snapshot.previous_period_end == "2025-06-30"
+
+def test_kap_fundamental_provider_maps_revenue_xbrl_code() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_Revenue": {
+            "current": 88_494_252.0,
+            "previous": 74_000_000.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert raw_data["revenue"] == 88_494_252.0
+    assert raw_data["previous_revenue"] == 74_000_000.0
+
+def test_kap_fundamental_provider_maps_net_income_xbrl_code() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_ProfitLoss": {
+            "current": 14_449_834.0,
+            "previous": 8_468_992.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert raw_data["net_income"] == 14_449_834.0
+    assert raw_data["previous_net_income"] == 8_468_992.0
+
+def test_kap_fundamental_provider_maps_total_assets_xbrl_code() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_Assets": {
+            "current": 549_748_035.0,
+            "previous": 0.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert raw_data["total_assets"] == 549_748_035.0
+
+def test_kap_fundamental_provider_maps_total_equity_xbrl_code() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_Equity": {
+            "current": 308_524_609.0,
+            "previous": 0.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert raw_data["total_equity"] == 308_524_609.0
+
+def test_kap_fundamental_provider_maps_short_term_borrowings() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_ShorttermBorrowings": {
+            "current": 10_000_000.0,
+            "previous": 0.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert raw_data["short_term_borrowings"] == 10_000_000.0
+
+def test_kap_fundamental_provider_maps_current_portion_of_long_term_borrowings() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_CurrentPortionOfLongtermBorrowings": {
+            "current": 4_000_000.0,
+            "previous": 0.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert (
+        raw_data["current_portion_of_long_term_borrowings"]
+        == 4_000_000.0
+    )
+
+def test_kap_fundamental_provider_maps_long_term_borrowings() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_LongtermBorrowings": {
+            "current": 6_000_000.0,
+            "previous": 0.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert raw_data["long_term_borrowings"] == 6_000_000.0
+
+def test_kap_fundamental_provider_calculates_total_debt() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_ShorttermBorrowings": {
+            "current": 10_000_000.0,
+            "previous": 0.0,
+        },
+        "ifrs-full_CurrentPortionOfLongtermBorrowings": {
+            "current": 4_000_000.0,
+            "previous": 0.0,
+        },
+        "ifrs-full_LongtermBorrowings": {
+            "current": 6_000_000.0,
+            "previous": 0.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert raw_data["total_debt"] == 20_000_000.0
+
+def test_kap_fundamental_provider_total_debt_is_none_when_component_missing() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_ShorttermBorrowings": {
+            "current": 10_000_000.0,
+            "previous": 0.0,
+        },
+        "ifrs-full_LongtermBorrowings": {
+            "current": 6_000_000.0,
+            "previous": 0.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert raw_data["total_debt"] is None
+
+def test_kap_fundamental_provider_maps_cash_and_equivalents() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_CashAndCashEquivalents": {
+            "current": 12_000_000.0,
+            "previous": 10_000_000.0,
+        },
+    }
+
+    raw_data = provider._map_financial_rows(raw_rows)
+
+    assert raw_data["cash"] == 12_000_000.0
+
+def test_kap_fundamental_provider_builds_snapshot_from_financial_rows() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "ifrs-full_Revenue": {
+            "current": 88_494_252.0,
+            "previous": 74_000_000.0,
+        },
+        "ifrs-full_ProfitLoss": {
+            "current": 14_449_834.0,
+            "previous": 8_468_992.0,
+        },
+        "ifrs-full_Assets": {
+            "current": 549_748_035.0,
+            "previous": None,
+        },
+        "ifrs-full_Equity": {
+            "current": 308_524_609.0,
+            "previous": None,
+        },
+        "ifrs-full_ShorttermBorrowings": {
+            "current": 10_000_000.0,
+            "previous": None,
+        },
+        "ifrs-full_CurrentPortionOfLongtermBorrowings": {
+            "current": 4_000_000.0,
+            "previous": None,
+        },
+        "ifrs-full_LongtermBorrowings": {
+            "current": 6_000_000.0,
+            "previous": None,
+        },
+        "ifrs-full_CashAndCashEquivalents": {
+            "current": 12_000_000.0,
+            "previous": None,
+        },
+    }
+
+    snapshot = provider._build_snapshot_from_rows(
+        symbol="ASELS",
+        raw_rows=raw_rows,
+        scale_text="1000 TL",
+        period_end="2026-06-30",
+        previous_period_end="2025-06-30",
+    )
+
+    assert snapshot.symbol == "ASELS"
+    assert snapshot.revenue == 88_494_252_000.0
+    assert snapshot.net_income == 14_449_834_000.0
+    assert snapshot.previous_revenue == 74_000_000_000.0
+    assert snapshot.previous_net_income == 8_468_992_000.0
+    assert snapshot.total_assets == 549_748_035_000.0
+    assert snapshot.total_equity == 308_524_609_000.0
+    assert snapshot.total_debt == 20_000_000_000.0
+    assert snapshot.cash == 12_000_000_000.0
+    assert snapshot.period_end == "2026-06-30"
+    assert snapshot.previous_period_end == "2025-06-30"
