@@ -234,3 +234,23 @@ def test_kap_http_financial_transport_ignores_non_financial_disclosure() -> None
     )
 
     assert disclosure_id == 1651637
+
+def test_kap_http_financial_transport_extracts_disclosure_id_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_search.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    disclosure_id = transport._extract_disclosure_id(
+        html=html,
+    )
+
+    assert disclosure_id == 1643141

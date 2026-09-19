@@ -82,22 +82,35 @@ class KapHttpFinancialTransport:
     ) -> int:
         """Extract the latest financial report disclosure ID."""
 
-        matches = re.findall(
+    # Current KAP Next.js payload format.
+        payload_matches = re.findall(
             (
-            r'<a[^>]+href=["\']'
-            r'/tr/Bildirim/(\d+)'
-            r'["\'][^>]*>'
-            r'\s*Finansal Rapor\s*'
-            r'</a>'
+                r'\\"disclosureIndex\\":(\d+)'
+                r'(?:(?!\\"disclosureIndex\\":).)*?'
+                r'\\"title\\":\\"Finansal Rapor\\"'
+            ),
+            html,
+        )
+
+    # Legacy/simple HTML format used by existing tests.
+        anchor_matches = re.findall(
+            (
+                r'<a[^>]+href=["\']'
+                r'/tr/Bildirim/(\d+)'
+                r'["\'][^>]*>'
+                r'\s*Finansal Rapor\s*'
+                r'</a>'
             ),
             html,
             flags=re.IGNORECASE,
         )
 
+        matches = payload_matches + anchor_matches
+
         if not matches:
             raise RuntimeError(
             "Financial disclosure ID not found"
-        )
+            )
 
         return max(
             int(disclosure_id)
