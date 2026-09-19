@@ -1,5 +1,5 @@
 """Tests for KAP fundamental data provider."""
-
+import pytest
 from bist_radar.fundamentals.kap_provider import (
     KapFundamentalProvider,
 )
@@ -7,7 +7,19 @@ from bist_radar.fundamentals.models import FundamentalSnapshot
 
 
 def test_kap_fundamental_provider_returns_snapshot() -> None:
-    provider = KapFundamentalProvider()
+    class FakeFinancialClient:
+        def fetch_report(
+            self,
+            symbol: str,
+        ) -> dict:
+            return {
+                "scale_text": "TL",
+                "period_end": None,
+                "previous_period_end": None,
+                "rows": {},
+            }
+
+    provider = KapFundamentalProvider(financial_client=FakeFinancialClient(),)
 
     snapshot = provider.get_snapshot("ASELS")
 
@@ -376,3 +388,104 @@ def test_kap_fundamental_provider_builds_snapshot_from_financial_rows() -> None:
     assert snapshot.cash == 12_000_000_000.0
     assert snapshot.period_end == "2026-06-30"
     assert snapshot.previous_period_end == "2025-06-30"
+
+def test_kap_fundamental_provider_uses_financial_client() -> None:
+    class FakeFinancialClient:
+        def fetch_report(
+            self,
+            symbol: str,
+        ) -> dict:
+            assert symbol == "ASELS"
+
+            return {
+                "scale_text": "1000 TL",
+                "period_end": "2026-06-30",
+                "previous_period_end": "2025-06-30",
+                "rows": {},
+            }
+
+    client = FakeFinancialClient()
+
+    provider = KapFundamentalProvider(
+        financial_client=client,
+    )
+
+    raw_report = provider._fetch_report_data(
+        symbol="ASELS",
+    )
+
+    assert raw_report["scale_text"] == "1000 TL"
+    assert raw_report["period_end"] == "2026-06-30"
+
+def test_kap_fundamental_provider_get_snapshot_uses_financial_client() -> None:
+    class FakeFinancialClient:
+        def fetch_report(
+            self,
+            symbol: str,
+        ) -> dict:
+            assert symbol == "ASELS"
+
+            return {
+                "scale_text": "1000 TL",
+                "period_end": "2026-06-30",
+                "previous_period_end": "2025-06-30",
+                "rows": {
+                    "ifrs-full_Revenue": {
+                        "current": 88_494_252.0,
+                        "previous": 74_000_000.0,
+                    },
+                    "ifrs-full_ProfitLoss": {
+                        "current": 14_449_834.0,
+                        "previous": 8_468_992.0,
+                    },
+                    "ifrs-full_Assets": {
+                        "current": 549_748_035.0,
+                        "previous": None,
+                    },
+                    "ifrs-full_Equity": {
+                        "current": 308_524_609.0,
+                        "previous": None,
+                    },
+                    "ifrs-full_ShorttermBorrowings": {
+                        "current": 10_000_000.0,
+                        "previous": None,
+                    },
+                    "ifrs-full_CurrentPortionOfLongtermBorrowings": {
+                        "current": 4_000_000.0,
+                        "previous": None,
+                    },
+                    "ifrs-full_LongtermBorrowings": {
+                        "current": 6_000_000.0,
+                        "previous": None,
+                    },
+                    "ifrs-full_CashAndCashEquivalents": {
+                        "current": 12_000_000.0,
+                        "previous": None,
+                    },
+                },
+            }
+
+    provider = KapFundamentalProvider(
+        financial_client=FakeFinancialClient(),
+    )
+
+    snapshot = provider.get_snapshot("ASELS")
+
+    assert snapshot.symbol == "ASELS"
+    assert snapshot.revenue == 88_494_252_000.0
+    assert snapshot.net_income == 14_449_834_000.0
+    assert snapshot.previous_revenue == 74_000_000_000.0
+    assert snapshot.previous_net_income == 8_468_992_000.0
+    assert snapshot.total_debt == 20_000_000_000.0
+    assert snapshot.cash == 12_000_000_000.0
+    assert snapshot.period_end == "2026-06-30"
+    assert snapshot.previous_period_end == "2025-06-30"
+
+def test_kap_fundamental_provider_requires_financial_client() -> None:
+    provider = KapFundamentalProvider()
+
+    with pytest.raises(
+        RuntimeError,
+        match="Financial client is not configured",
+    ):
+        provider.get_snapshot("ASELS")

@@ -8,16 +8,46 @@ from bist_radar.fundamentals.provider import FundamentalProvider
 
 class KapFundamentalProvider(FundamentalProvider):
     """Fundamental data provider backed by KAP."""
+    def __init__(
+        self,
+        financial_client=None,
+    ) -> None:
+        self.financial_client = financial_client
 
+
+    def _fetch_report_data(
+        self,
+        symbol: str,
+    ) -> dict:
+        """Fetch raw financial report data through the client."""
+
+        if self.financial_client is None:
+            raise RuntimeError(
+            "Financial client is not configured"
+        )
+
+        return self.financial_client.fetch_report(
+        symbol=symbol,
+        )
+    
     def get_snapshot(
         self,
         symbol: str,
     ) -> FundamentalSnapshot:
         """Return a fundamental snapshot for a symbol."""
 
-        return self._build_snapshot(
+        raw_report = self._fetch_report_data(
+        symbol=symbol,
+        )
+
+        return self._build_snapshot_from_rows(
             symbol=symbol,
-            raw_data={},
+            raw_rows=raw_report["rows"],
+            scale_text=raw_report["scale_text"],
+            period_end=raw_report.get("period_end"),
+            previous_period_end=raw_report.get(
+            "previous_period_end"
+            ),
         )
 
     def _build_snapshot(
