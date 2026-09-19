@@ -152,12 +152,12 @@ class KapFundamentalProvider(FundamentalProvider):
         )
 
         short_term_borrowings_row = raw_rows.get(
-            "ifrs-full_ShorttermBorrowings",
+            "kap-fr_CurrentBorowings",
             {},
         )
 
         current_portion_row = raw_rows.get(
-            "ifrs-full_CurrentPortionOfLongtermBorrowings",
+            "kap-fr_CurrentPortionOfNoncurrentBorrowings",
             {},
         )
 

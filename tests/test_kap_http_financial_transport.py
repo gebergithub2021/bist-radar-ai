@@ -2,6 +2,7 @@ from bist_radar.fundamentals.kap_http_financial_transport import (
     KapHttpFinancialTransport,
 )
 import pytest
+from bist_radar.fundamentals.kap_provider import KapFundamentalProvider
 
 
 def test_kap_http_financial_transport_can_be_created() -> None:
@@ -254,3 +255,466 @@ def test_kap_http_financial_transport_extracts_disclosure_id_from_real_fixture()
     )
 
     assert disclosure_id == 1643141
+
+def test_kap_http_financial_transport_fetches_disclosure_page():
+    class FakeResponse:
+        text = "<html>financial report detail</html>"
+
+        def raise_for_status(self):
+            pass
+
+    class FakeSession:
+        def __init__(self):
+            self.requested_url = None
+
+        def get(self, url):
+            self.requested_url = url
+            return FakeResponse()
+
+    session = FakeSession()
+
+    transport = KapHttpFinancialTransport(
+        session=session,
+    )
+
+    html = transport._fetch_disclosure_page(
+        disclosure_id=1643141,
+    )
+
+    assert html == "<html>financial report detail</html>"
+    assert session.requested_url == (
+        "https://www.kap.org.tr/tr/Bildirim/1643141"
+    )
+
+def test_kap_http_financial_transport_fetch_disclosure_requires_session():
+    transport = KapHttpFinancialTransport()
+
+    with pytest.raises(
+        RuntimeError,
+        match="KAP HTTP session is not configured",
+    ):
+        transport._fetch_disclosure_page(
+            disclosure_id=1643141,
+        )
+
+def test_kap_http_financial_transport_fetch_report_builds_report():
+    class FakeResponse:
+        text = "<html>financial detail</html>"
+
+        def raise_for_status(self):
+            pass
+
+    class FakeSession:
+        def get(self, url):
+            return FakeResponse()
+
+    transport = KapHttpFinancialTransport(
+        session=FakeSession(),
+    )
+
+    transport._find_latest_financial_disclosure = (
+        lambda symbol: 1643141
+    )
+
+    expected_report = {
+        "scale_text": "1.000 TL",
+        "period_end": "30.06.2026",
+        "previous_period_end": "30.06.2025",
+        "rows": {},
+    }
+
+    transport._build_report = (
+        lambda html: expected_report
+    )
+
+    report = transport.fetch_report(
+        symbol="ASELS",
+    )
+
+    assert report == expected_report
+
+def test_kap_http_financial_transport_extracts_scale_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    scale_text = transport._extract_scale_text(
+        html=html,
+    )
+
+    assert scale_text == "1.000 TL"
+
+def test_kap_http_financial_transport_scale_requires_scale_text():
+    transport = KapHttpFinancialTransport()
+
+    with pytest.raises(
+        RuntimeError,
+        match="Financial report scale not found",
+    ):
+        transport._extract_scale_text(
+            html="<html>no scale here</html>",
+        )
+
+def test_kap_http_financial_transport_extracts_periods_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    period_end, previous_period_end = (
+        transport._extract_period_ends(
+            html=html,
+        )
+    )
+
+    assert period_end == "30.06.2026"
+    assert previous_period_end == "30.06.2025"
+
+def test_kap_http_financial_transport_periods_require_period_data():
+    transport = KapHttpFinancialTransport()
+
+    with pytest.raises(
+        RuntimeError,
+        match="Financial report periods not found",
+    ):
+        transport._extract_period_ends(
+            html="<html>no period data here</html>",
+        )
+
+def test_kap_http_financial_transport_extracts_revenue_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    row = transport._extract_financial_row(
+        html=html,
+        xbrl_code="ifrs-full_Revenue",
+    )
+
+    assert row == {
+        "current": 88494252.0,
+        "previous": 70956004.0,
+    }
+
+def test_kap_http_financial_transport_financial_row_requires_xbrl_code():
+    transport = KapHttpFinancialTransport()
+
+    with pytest.raises(
+        RuntimeError,
+        match="Financial row not found: ifrs-full_MissingField",
+    ):
+        transport._extract_financial_row(
+            html="<html>no financial rows here</html>",
+            xbrl_code="ifrs-full_MissingField",
+        )
+def test_kap_http_financial_transport_extracts_profit_loss_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    row = transport._extract_financial_row(
+        html=html,
+        xbrl_code="ifrs-full_ProfitLoss",
+    )
+
+    assert row == {
+        "current": 14449834.0,
+        "previous": 8468992.0,
+    }
+
+def test_kap_http_financial_transport_extracts_assets_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    row = transport._extract_financial_row(
+        html=html,
+        xbrl_code="ifrs-full_Assets",
+    )
+
+    assert row == {
+        "current": 549748035.0,
+        "previous": 508228606.0,
+    }
+
+def test_kap_http_financial_transport_extracts_equity_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    row = transport._extract_financial_row(
+        html=html,
+        xbrl_code="ifrs-full_Equity",
+    )
+
+    assert row == {
+        "current": 308524609.0,
+        "previous": 296498504.0,
+    }
+
+def test_kap_http_financial_transport_extracts_current_borrowings_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    row = transport._extract_financial_row(
+        html=html,
+        xbrl_code="kap-fr_CurrentBorowings",
+    )
+
+    assert row == {
+        "current": 25398173.0,
+        "previous": 15456810.0,
+    }
+
+def test_kap_http_financial_transport_extracts_current_portion_of_noncurrent_borrowings_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    row = transport._extract_financial_row(
+        html=html,
+        xbrl_code="kap-fr_CurrentPortionOfNoncurrentBorrowings",
+    )
+
+    assert row == {
+        "current": 39308899.0,
+        "previous": 29324421.0,
+    }
+
+def test_kap_http_financial_transport_extracts_financial_rows_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    rows = transport._extract_financial_rows(
+        html=html,
+    )
+
+    assert rows["ifrs-full_Revenue"] == {
+        "current": 88494252.0,
+        "previous": 70956004.0,
+    }
+
+    assert rows["ifrs-full_ProfitLoss"] == {
+        "current": 14449834.0,
+        "previous": 8468992.0,
+    }
+
+    assert rows["ifrs-full_Assets"] == {
+        "current": 549748035.0,
+        "previous": 508228606.0,
+    }
+
+    assert rows["ifrs-full_Equity"] == {
+        "current": 308524609.0,
+        "previous": 296498504.0,
+    }
+
+    assert rows["kap-fr_CurrentBorowings"] == {
+        "current": 25398173.0,
+        "previous": 15456810.0,
+    }
+
+    assert rows[
+        "kap-fr_CurrentPortionOfNoncurrentBorrowings"
+    ] == {
+        "current": 39308899.0,
+        "previous": 29324421.0,
+    }
+
+    assert rows["ifrs-full_LongtermBorrowings"] == {
+        "current": 8586218.0,
+        "previous": 5921301.0,
+    }
+
+    assert rows["ifrs-full_CashAndCashEquivalents"] == {
+        "current": 39468926.0,
+        "previous": 34251653.0,
+    }
+
+def test_kap_http_financial_transport_extracts_cash_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    row = transport._extract_financial_row(
+        html=html,
+        xbrl_code="ifrs-full_CashAndCashEquivalents",
+    )
+
+    assert row == {
+        "current": 39468926.0,
+        "previous": 34251653.0,
+    }
+
+def test_kap_http_financial_transport_builds_structured_report_from_real_fixture():
+    fixture_path = (
+        "tests/fixtures/"
+        "kap_asels_financial_detail.html"
+    )
+
+    with open(
+        fixture_path,
+        encoding="utf-8",
+    ) as fixture:
+        html = fixture.read()
+
+    transport = KapHttpFinancialTransport()
+
+    report = transport._build_report(
+        html=html,
+    )
+
+    assert report["scale_text"] == "1.000 TL"
+    assert report["period_end"] == "30.06.2026"
+    assert report["previous_period_end"] == "30.06.2025"
+
+    assert report["rows"]["ifrs-full_Revenue"] == {
+        "current": 88494252.0,
+        "previous": 70956004.0,
+    }
+
+    assert report["rows"]["ifrs-full_ProfitLoss"] == {
+        "current": 14449834.0,
+        "previous": 8468992.0,
+    }
+
+    assert report["rows"]["ifrs-full_CashAndCashEquivalents"] == {
+        "current": 39468926.0,
+        "previous": 34251653.0,
+    }
+
+def test_kap_fundamental_provider_maps_real_kap_debt_xbrl_codes():
+    provider = KapFundamentalProvider()
+
+    rows = {
+            "ifrs-full_Revenue": {
+            "current": 88494252.0,
+            "previous": 70956004.0,
+        },
+            "ifrs-full_ProfitLoss": {
+            "current": 14449834.0,
+            "previous": 8468992.0,
+        },
+            "ifrs-full_Assets": {
+            "current": 549748035.0,
+            "previous": 508228606.0,
+        },
+            "ifrs-full_Equity": {
+            "current": 308524609.0,
+            "previous": 296498504.0,
+        },
+            "kap-fr_CurrentBorowings": {
+            "current": 25398173.0,
+            "previous": 15456810.0,
+        },
+            "kap-fr_CurrentPortionOfNoncurrentBorrowings": {
+            "current": 39308899.0,
+            "previous": 29324421.0,
+        },
+            "ifrs-full_LongtermBorrowings": {
+            "current": 8586218.0,
+            "previous": 5921301.0,
+        },
+            "ifrs-full_CashAndCashEquivalents": {
+            "current": 39468926.0,
+            "previous": 34251653.0,
+        },
+    }
+
+    mapped = provider._map_financial_rows(
+        raw_rows=rows,
+    )
+
+    assert mapped["total_debt"] == 73293290.0
+    assert mapped["cash"] == 39468926.0
