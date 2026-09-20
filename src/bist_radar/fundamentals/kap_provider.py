@@ -116,14 +116,24 @@ class KapFundamentalProvider(FundamentalProvider):
         self,
         scale_text: str,
     ) -> int:
-        """Parse KAP presentation scale."""
+        """Parse KAP presentation currency scale."""
 
-        normalized = scale_text.strip().upper()
+        normalized = (
+            scale_text
+            .upper()
+            .replace("TL", "")
+            .strip()
+            .replace(".", "")
+            .replace(",", "")
+        )
 
-        if normalized == "1000 TL":
-            return 1_000
+        if not normalized:
+            return 1
 
-        return 1
+        try:
+            return int(normalized)
+        except ValueError:
+            return 1
 
     def _map_financial_rows(
         self,

@@ -718,3 +718,38 @@ def test_kap_fundamental_provider_maps_real_kap_debt_xbrl_codes():
 
     assert mapped["total_debt"] == 73293290.0
     assert mapped["cash"] == 39468926.0
+
+class FakeMemberResolver:
+    def __init__(
+        self,
+        member_id: str,
+    ) -> None:
+        self.member_id = member_id
+        self.requested_symbol = None
+
+    def resolve(
+        self,
+        symbol: str,
+    ) -> str:
+        self.requested_symbol = symbol
+
+        return self.member_id
+
+
+def test_resolve_member_id_uses_member_resolver() -> None:
+    resolver = FakeMemberResolver(
+        member_id="4028e4a1413b7ef401413bc2251e0047",
+    )
+
+    transport = KapHttpFinancialTransport(
+        member_resolver=resolver,
+    )
+
+    member_id = transport._resolve_member_id(
+        symbol="ASELS",
+    )
+
+    assert member_id == (
+        "4028e4a1413b7ef401413bc2251e0047"
+    )
+    assert resolver.requested_symbol == "ASELS"

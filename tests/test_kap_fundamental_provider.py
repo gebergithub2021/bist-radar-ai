@@ -128,6 +128,13 @@ def test_kap_fundamental_provider_parses_thousand_try_scale() -> None:
 
     assert scale == 1_000
 
+def test_kap_fundamental_provider_parses_dotted_thousand_try_scale() -> None:
+    provider = KapFundamentalProvider()
+
+    scale = provider._parse_scale("1.000 TL")
+
+    assert scale == 1_000
+
 
 def test_kap_fundamental_provider_parses_try_scale() -> None:
     provider = KapFundamentalProvider()
