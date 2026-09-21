@@ -112,19 +112,22 @@ def build_bist100_candidate_analysis(
     results: list[CandidateAnalysis] = []
 
     for candidate in candidates:
-        snapshot = fundamental_provider.get_snapshot(
+        try:
+            snapshot = fundamental_provider.get_snapshot(
             symbol=candidate.symbol,
-        )
+            )
 
-        fundamental = analyze_fundamentals(
+            fundamental = analyze_fundamentals(
             snapshot,
         )
+        except RuntimeError:
+            continue
 
         results.append(
             CandidateAnalysis(
-                technical=candidate,
-                fundamental=fundamental,
-            )
+            technical=candidate,
+            fundamental=fundamental,
         )
+    )
 
     return results

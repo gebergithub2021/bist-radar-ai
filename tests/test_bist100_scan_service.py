@@ -364,3 +364,63 @@ def test_bist100_candidate_analysis_calculates_fundamental_metrics() -> None:
     assert fundamental.net_debt == 30.0
 
     assert results[0].technical.weighted_score == 100
+
+def test_bist100_candidate_analysis_skips_fundamental_failure() -> None:
+    from bist_radar.api.bist100_scan_service import (
+        build_bist100_candidate_analysis,
+    )
+    from bist_radar.fundamentals.models import (
+        FundamentalSnapshot,
+    )
+
+    class PartiallyFailingFundamentalProvider:
+        def get_snapshot(
+            self,
+            symbol: str,
+        ) -> FundamentalSnapshot:
+            if symbol == "ASELS":
+                raise RuntimeError(
+                    "Fundamental data unavailable"
+                )
+
+            return FundamentalSnapshot(
+                symbol=symbol,
+                revenue=200.0,
+                net_income=20.0,
+                total_assets=300.0,
+                total_equity=100.0,
+                total_debt=40.0,
+                cash=10.0,
+                previous_revenue=160.0,
+                previous_net_income=10.0,
+            )
+
+    def fake_build_scan_results(
+        engine,
+        kap_enricher,
+        symbols: list[str],
+    ) -> list[FakeResult]:
+        return [
+            FakeResult("THYAO", 100),
+            FakeResult("ASELS", 90),
+            FakeResult("TUPRS", 85),
+            FakeResult("EREGL", 84),
+        ]
+
+    results = build_bist100_candidate_analysis(
+        engine=object(),
+        kap_enricher=None,
+        fundamental_provider=(
+            PartiallyFailingFundamentalProvider()
+        ),
+        universe=FakeUniverseProvider(),
+        scan_builder=fake_build_scan_results,
+    )
+
+    assert [
+        result.technical.symbol
+        for result in results
+    ] == [
+        "THYAO",
+        "TUPRS",
+    ]
