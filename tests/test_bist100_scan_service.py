@@ -241,3 +241,126 @@ def test_bist100_candidates_survive_kap_failure() -> None:
         result.kap_title == "KAP service unavailable"
         for result in results
     )
+
+def test_bist100_candidate_analysis_fetches_fundamentals_only_for_candidates() -> None:
+    from bist_radar.api.bist100_scan_service import (
+        build_bist100_candidate_analysis,
+    )
+    from bist_radar.fundamentals.models import (
+        FundamentalSnapshot,
+    )
+
+    class FakeFundamentalProvider:
+        def __init__(self) -> None:
+            self.received_symbols: list[str] = []
+
+        def get_snapshot(
+            self,
+            symbol: str,
+        ) -> FundamentalSnapshot:
+            self.received_symbols.append(symbol)
+
+            return FundamentalSnapshot(
+                symbol=symbol,
+                revenue=100.0,
+                net_income=10.0,
+                total_assets=200.0,
+                total_equity=100.0,
+                total_debt=20.0,
+                cash=5.0,
+            )
+
+    def fake_build_scan_results(
+        engine,
+        kap_enricher,
+        symbols: list[str],
+    ) -> list[FakeResult]:
+        assert kap_enricher is None
+
+        return [
+            FakeResult("THYAO", 100),
+            FakeResult("ASELS", 90),
+            FakeResult("TUPRS", 85),
+            FakeResult("EREGL", 84),
+        ]
+
+    provider = FakeFundamentalProvider()
+
+    results = build_bist100_candidate_analysis(
+        engine=object(),
+        kap_enricher=None,
+        fundamental_provider=provider,
+        universe=FakeUniverseProvider(),
+        scan_builder=fake_build_scan_results,
+    )
+
+    assert provider.received_symbols == [
+        "THYAO",
+        "ASELS",
+        "TUPRS",
+    ]
+
+    assert [
+        result.technical.symbol
+        for result in results
+    ] == [
+        "THYAO",
+        "ASELS",
+        "TUPRS",
+    ]
+
+def test_bist100_candidate_analysis_calculates_fundamental_metrics() -> None:
+    from bist_radar.api.bist100_scan_service import (
+        build_bist100_candidate_analysis,
+    )
+    from bist_radar.fundamentals.models import (
+        FundamentalSnapshot,
+    )
+
+    class FakeFundamentalProvider:
+        def get_snapshot(
+            self,
+            symbol: str,
+        ) -> FundamentalSnapshot:
+            return FundamentalSnapshot(
+                symbol=symbol,
+                revenue=200.0,
+                net_income=20.0,
+                total_assets=300.0,
+                total_equity=100.0,
+                total_debt=40.0,
+                cash=10.0,
+                previous_revenue=160.0,
+                previous_net_income=10.0,
+            )
+
+    def fake_build_scan_results(
+        engine,
+        kap_enricher,
+        symbols: list[str],
+    ) -> list[FakeResult]:
+        return [
+            FakeResult("ASELS", 100),
+        ]
+
+    results = build_bist100_candidate_analysis(
+        engine=object(),
+        kap_enricher=None,
+        fundamental_provider=FakeFundamentalProvider(),
+        universe=FakeUniverseProvider(),
+        scan_builder=fake_build_scan_results,
+    )
+
+    assert len(results) == 1
+
+    fundamental = results[0].fundamental
+
+    assert fundamental.symbol == "ASELS"
+    assert fundamental.roe == 20.0
+    assert fundamental.net_margin == 10.0
+    assert fundamental.revenue_growth == 25.0
+    assert fundamental.net_income_growth == 100.0
+    assert fundamental.debt_to_equity == 0.4
+    assert fundamental.net_debt == 30.0
+
+    assert results[0].technical.weighted_score == 100
