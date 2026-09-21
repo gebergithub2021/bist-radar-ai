@@ -6,10 +6,14 @@ from fastapi.testclient import TestClient
 
 from bist_radar.api.app import (
     app,
+    get_fundamental_provider,
     get_kap_enricher,
     get_scanner_engine,
 )
 from bist_radar.models.scan_result import ScanResult
+from bist_radar.fundamentals.models import (
+    FundamentalSnapshot,
+)
 
 
 class FakeScannerEngine:
@@ -198,3 +202,129 @@ def test_bist100_candidates_survives_kap_failure() -> None:
         app.dependency_overrides[
             get_kap_enricher
         ] = original_override
+
+from bist_radar.fundamentals.models import (
+    FundamentalSnapshot,
+)
+
+
+class FakeFundamentalProvider:
+    def get_snapshot(
+        self,
+        symbol: str,
+    ) -> FundamentalSnapshot:
+        return FundamentalSnapshot(
+            symbol=symbol,
+            revenue=200.0,
+            net_income=20.0,
+            total_assets=300.0,
+            total_equity=100.0,
+            total_debt=40.0,
+            cash=10.0,
+            previous_revenue=160.0,
+            previous_net_income=10.0,
+            period_end="30.06.2026",
+            previous_period_end="30.06.2025",
+        )
+
+
+def override_fundamental_provider():
+    return FakeFundamentalProvider()
+
+
+def test_bist100_analysis_returns_technical_and_fundamental_data() -> None:
+    original_override = app.dependency_overrides.get(
+        get_fundamental_provider
+    )
+
+    app.dependency_overrides[
+        get_fundamental_provider
+    ] = override_fundamental_provider
+
+    try:
+        response = client.get(
+            "/bist100/analysis"
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["minimum_score"] == 85
+        assert data["count"] == 1
+
+        result = data["results"][0]
+
+        assert result["technical"]["symbol"] == "ASELS"
+        assert result["technical"]["score"] == 90
+
+        assert result["fundamental"] == {
+            "symbol": "ASELS",
+            "roe": 20.0,
+            "net_margin": 10.0,
+            "revenue_growth": 25.0,
+            "net_income_growth": 100.0,
+            "debt_to_equity": 0.4,
+            "net_debt": 30.0,
+        }
+    finally:
+        if original_override is None:
+            app.dependency_overrides.pop(
+                get_fundamental_provider,
+                None,
+            )
+        else:
+            app.dependency_overrides[
+                get_fundamental_provider
+            ] = original_override
+
+class FailingFundamentalProvider:
+    def get_snapshot(
+        self,
+        symbol: str,
+    ):
+        raise RuntimeError(
+            "Fundamental data unavailable"
+        )
+
+
+def override_failing_fundamental_provider():
+    return FailingFundamentalProvider()
+
+
+def test_bist100_analysis_preserves_candidate_when_fundamental_unavailable() -> None:
+    original_override = app.dependency_overrides.get(
+        get_fundamental_provider
+    )
+
+    app.dependency_overrides[
+        get_fundamental_provider
+    ] = override_failing_fundamental_provider
+
+    try:
+        response = client.get(
+            "/bist100/analysis"
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["minimum_score"] == 85
+        assert data["count"] == 1
+
+        result = data["results"][0]
+
+        assert result["technical"]["symbol"] == "ASELS"
+        assert result["technical"]["score"] == 90
+        assert result["fundamental"] is None
+    finally:
+        if original_override is None:
+            app.dependency_overrides.pop(
+                get_fundamental_provider,
+                None,
+            )
+        else:
+            app.dependency_overrides[
+                get_fundamental_provider
+            ] = original_override

@@ -15,7 +15,7 @@ from bist_radar.kap.service import KapService
 from bist_radar.scanner.engine import ScannerEngine
 from bist_radar.api.scan_service import build_scan_results
 from bist_radar.api.bist100_scan_service import (
-    build_bist100_candidates,
+    build_bist100_candidates, build_bist100_candidate_analysis,
 )
 from bist_radar.fundamentals.provider import FundamentalProvider
 from bist_radar.fundamentals.analysis import analyze_fundamentals
@@ -256,6 +256,61 @@ def bist100_candidates(
             "count": len(serialized_results),
             "results": serialized_results,
         }
+
+@app.get("/bist100/analysis")
+def bist100_analysis(
+    engine: ScannerEngine = Depends(get_scanner_engine),
+    kap_enricher: KapEnricher | None = Depends(get_kap_enricher),
+    fundamental_provider: FundamentalProvider = Depends(
+        get_fundamental_provider
+    ),
+) -> dict[str, object]:
+    """Return technical and fundamental analysis for BIST 100 candidates."""
+
+    results = build_bist100_candidate_analysis(
+        engine=engine,
+        kap_enricher=kap_enricher,
+        fundamental_provider=fundamental_provider,
+    )
+
+    serialized_results = []
+
+    for result in results:
+        fundamental = result.fundamental
+
+        serialized_results.append(
+            {
+                "technical": scan_result_to_dict(
+                    result.technical
+                ),
+                "fundamental": (
+                    {
+                        "symbol": fundamental.symbol,
+                        "roe": fundamental.roe,
+                        "net_margin": fundamental.net_margin,
+                        "revenue_growth": (
+                            fundamental.revenue_growth
+                        ),
+                        "net_income_growth": (
+                            fundamental.net_income_growth
+                        ),
+                        "debt_to_equity": (
+                            fundamental.debt_to_equity
+                        ),
+                        "net_debt": fundamental.net_debt,
+                    }
+                    if fundamental is not None
+                    else None
+                ),
+            }
+        )
+
+    return {
+        "minimum_score": 85,
+        "count": len(serialized_results),
+        "results": serialized_results,
+    }
+
 @app.get("/fundamentals/{symbol}")
 def fundamentals(
     symbol: str,
