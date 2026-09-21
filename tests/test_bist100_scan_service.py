@@ -365,7 +365,7 @@ def test_bist100_candidate_analysis_calculates_fundamental_metrics() -> None:
 
     assert results[0].technical.weighted_score == 100
 
-def test_bist100_candidate_analysis_skips_fundamental_failure() -> None:
+def test_bist100_candidate_analysis_preserves_candidate_on_fundamental_failure() -> None:
     from bist_radar.api.bist100_scan_service import (
         build_bist100_candidate_analysis,
     )
@@ -422,5 +422,15 @@ def test_bist100_candidate_analysis_skips_fundamental_failure() -> None:
         for result in results
     ] == [
         "THYAO",
+        "ASELS",
         "TUPRS",
     ]
+
+    asels = next(
+        result
+        for result in results
+        if result.technical.symbol == "ASELS"
+    )
+
+    assert asels.technical.weighted_score == 90
+    assert asels.fundamental is None

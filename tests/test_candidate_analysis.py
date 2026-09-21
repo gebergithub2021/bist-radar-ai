@@ -39,3 +39,19 @@ def test_candidate_analysis_keeps_technical_and_fundamental_separate() -> None:
     assert result.technical is technical
     assert result.fundamental is fundamental
     assert result.technical.weighted_score == 100
+
+def test_candidate_analysis_allows_unavailable_fundamental() -> None:
+    technical = ScanResult(
+        symbol="ASELS",
+        above_sma20=True,
+        rsi_above_50=True,
+        macd_bullish=True,
+    )
+
+    result = CandidateAnalysis(
+        technical=technical,
+        fundamental=None,
+    )
+
+    assert result.technical.symbol == "ASELS"
+    assert result.fundamental is None

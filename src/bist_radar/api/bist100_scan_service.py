@@ -121,7 +121,7 @@ def build_bist100_candidate_analysis(
             snapshot,
         )
         except RuntimeError:
-            continue
+            fundamental = None
 
         results.append(
             CandidateAnalysis(

@@ -13,4 +13,4 @@ class CandidateAnalysis:
     """Technical and fundamental analysis for a candidate."""
 
     technical: ScanResult
-    fundamental: FundamentalAnalysisResult
+    fundamental: FundamentalAnalysisResult | None
