@@ -164,7 +164,7 @@ class KapHttpFinancialTransport:
             (
                 r"Sunum Para Birimi"
                 r".{0,500}?"
-                r"(\d[\d.]*\s*TL)"
+                r"((?:\d[\d.]*\s*)?TL)"
             ),
             html,
             flags=re.DOTALL,
@@ -173,7 +173,7 @@ class KapHttpFinancialTransport:
         if match is None:
             raise RuntimeError(
             "Financial report scale not found"
-        )
+            )
 
         return match.group(1)
 

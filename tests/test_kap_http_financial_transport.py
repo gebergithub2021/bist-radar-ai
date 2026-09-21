@@ -753,3 +753,17 @@ def test_resolve_member_id_uses_member_resolver() -> None:
         "4028e4a1413b7ef401413bc2251e0047"
     )
     assert resolver.requested_symbol == "ASELS"
+
+def test_extract_scale_text_accepts_plain_try() -> None:
+    transport = KapHttpFinancialTransport()
+
+    html = (
+        r"Sunum Para Birimi\u003c/td\u003e"
+        r"\u003ctd\u003eTL\u003c/td\u003e"
+    )
+
+    scale_text = transport._extract_scale_text(
+        html=html,
+    )
+
+    assert scale_text == "TL"
