@@ -113,3 +113,16 @@ def test_kap_member_resolver_loads_members_from_kap() -> None:
     assert session.requested_url == (
         "https://www.kap.org.tr/tr/bist-sirketler"
     )
+
+def test_resolver_splits_multiple_stock_codes() -> None:
+    html = (
+        r'{\"mkkMemberOid\":\"member-halkb\",'
+        r'\"kapMemberTitle\":\"TÜRKİYE HALK BANKASI A.Ş.\",'
+        r'\"stockCode\":\"HALKB, THL\",'
+        r'\"kapMemberType\":\"IGS\"}'
+    )
+
+    resolver = KapMemberResolver.from_html(html)
+
+    assert resolver.resolve("HALKB") == "member-halkb"
+    assert resolver.resolve("THL") == "member-halkb"

@@ -32,14 +32,18 @@ class KapMemberResolver:
             flags=re.DOTALL,
         )
 
-        members = {
-            stock_code: member_id
-            for member_id, stock_code in matches
-        }
+        members: dict[str, str] = {}
+
+        for member_id, stock_codes in matches:
+            for stock_code in stock_codes.split(","):
+                parsed_stock_code = stock_code.strip().upper()
+
+                if parsed_stock_code:
+                    members[parsed_stock_code] = member_id
 
         return cls(
-            members=members,
-        )
+        members=members,
+    )
 
     @classmethod
     def from_kap(
