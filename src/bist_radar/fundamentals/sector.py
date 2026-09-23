@@ -15,6 +15,10 @@ _BANK_SYMBOLS = {
     "GARAN",
     "HALKB",
     "ISCTR",
+    "SKBNK",
+    "TSKB",
+    "VAKBN",
+    "YKBNK",
 }
 
 
