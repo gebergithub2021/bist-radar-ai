@@ -11,9 +11,6 @@ from bist_radar.api.app import (
     get_scanner_engine,
 )
 from bist_radar.models.scan_result import ScanResult
-from bist_radar.fundamentals.models import (
-    FundamentalSnapshot,
-)
 
 
 class FakeScannerEngine:
@@ -318,6 +315,68 @@ def test_bist100_analysis_preserves_candidate_when_fundamental_unavailable() -> 
         assert result["technical"]["symbol"] == "ASELS"
         assert result["technical"]["score"] == 90
         assert result["fundamental"] is None
+    finally:
+        if original_override is None:
+            app.dependency_overrides.pop(
+                get_fundamental_provider,
+                None,
+            )
+        else:
+            app.dependency_overrides[
+                get_fundamental_provider
+            ] = original_override
+
+class FakeBankFundamentalProvider:
+    def get_snapshot(
+        self,
+        symbol: str,
+    ) -> FundamentalSnapshot:
+        return FundamentalSnapshot(
+            symbol=symbol,
+            revenue=None,
+            net_income=20.0,
+            total_assets=300.0,
+            total_equity=100.0,
+            total_debt=None,
+            cash=None,
+            previous_revenue=None,
+            previous_net_income=10.0,
+            period_end="30.06.2026",
+            previous_period_end="30.06.2025",
+        )
+
+
+def override_bank_fundamental_provider():
+    return FakeBankFundamentalProvider()
+
+def test_bist100_analysis_serializes_partial_bank_fundamentals() -> None:
+    original_override = app.dependency_overrides.get(
+        get_fundamental_provider
+    )
+
+    app.dependency_overrides[
+        get_fundamental_provider
+    ] = override_bank_fundamental_provider
+
+    try:
+        response = client.get(
+            "/bist100/analysis"
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+        result = data["results"][0]
+
+        assert result["fundamental"] == {
+            "symbol": "ASELS",
+            "roe": 20.0,
+            "net_margin": None,
+            "revenue_growth": None,
+            "net_income_growth": 100.0,
+            "debt_to_equity": None,
+            "net_debt": None,
+        }
     finally:
         if original_override is None:
             app.dependency_overrides.pop(
