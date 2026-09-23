@@ -767,3 +767,33 @@ def test_extract_scale_text_accepts_plain_try() -> None:
     )
 
     assert scale_text == "TL"
+
+def test_extract_financial_rows_skips_missing_rows() -> None:
+    transport = KapHttpFinancialTransport()
+
+    def fake_extract_financial_row(
+        html: str,
+        xbrl_code: str,
+    ) -> dict[str, float]:
+        if xbrl_code == "ifrs-full_Revenue":
+            raise RuntimeError(
+                "Financial row not found: ifrs-full_Revenue"
+            )
+
+        return {
+            "current": 100.0,
+            "previous": 90.0,
+        }
+
+    transport._extract_financial_row = (
+        fake_extract_financial_row
+    )
+
+    rows = transport._extract_financial_rows(
+        html="fake-html",
+    )
+
+    assert "ifrs-full_Revenue" not in rows
+    assert "ifrs-full_ProfitLoss" in rows
+    assert "ifrs-full_Assets" in rows
+    assert "ifrs-full_Equity" in rows

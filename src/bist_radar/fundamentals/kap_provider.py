@@ -4,6 +4,10 @@ from typing import Any
 
 from bist_radar.fundamentals.models import FundamentalSnapshot
 from bist_radar.fundamentals.provider import FundamentalProvider
+from bist_radar.fundamentals.sector import (
+    FundamentalSector,
+    resolve_fundamental_sector,
+)
 
 
 class KapFundamentalProvider(FundamentalProvider):
@@ -212,6 +216,38 @@ class KapFundamentalProvider(FundamentalProvider):
         "cash": cash_row.get("current"),
         }
 
+    def _map_bank_financial_rows(
+        self,
+        raw_rows: dict[str, dict[str, float | None]],
+    ) -> dict[str, float | None]:
+        """Map bank financial rows to internal field names."""
+
+        net_income_row = raw_rows.get(
+            "ifrs-full_ProfitLoss",
+            {},
+        )
+
+        assets_row = raw_rows.get(
+            "ifrs-full_Assets",
+            {},
+        )
+
+        equity_row = raw_rows.get(
+            "ifrs-full_Equity",
+            {},
+        )
+
+        return {
+            "revenue": None,
+            "previous_revenue": None,
+            "net_income": net_income_row.get("current"),
+            "previous_net_income": net_income_row.get("previous"),
+            "total_assets": assets_row.get("current"),
+            "total_equity": equity_row.get("current"),
+            "total_debt": None,
+            "cash": None,
+        }
+
     def _build_snapshot_from_rows(
         self,
         symbol: str,
@@ -222,7 +258,16 @@ class KapFundamentalProvider(FundamentalProvider):
     ) -> FundamentalSnapshot:
         """Build a snapshot from mapped KAP financial rows."""
 
-        raw_data = self._map_financial_rows(raw_rows)
+        sector = resolve_fundamental_sector(symbol)
+
+        if sector == FundamentalSector.BANK:
+            raw_data = self._map_bank_financial_rows(
+            raw_rows,
+        )
+        else:
+            raw_data = self._map_financial_rows(
+            raw_rows,
+        )
 
         raw_data["scale_text"] = scale_text
         raw_data["period_end"] = period_end

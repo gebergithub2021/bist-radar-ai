@@ -558,3 +558,35 @@ def test_kap_fundamental_provider_maps_real_kap_debt_xbrl_codes() -> None:
     assert mapped["long_term_borrowings"] == 8_586_218.0
     assert mapped["total_debt"] == 73_293_290.0
     assert mapped["cash"] == 39_468_926.0
+
+def test_bank_symbol_uses_bank_row_mapping() -> None:
+    provider = KapFundamentalProvider()
+
+    called = False
+
+    def fake_bank_mapper(raw_rows):
+        nonlocal called
+        called = True
+
+        return {
+            "revenue": None,
+            "previous_revenue": None,
+            "net_income": 100.0,
+            "previous_net_income": 80.0,
+            "total_assets": 1000.0,
+            "total_equity": 500.0,
+            "total_debt": None,
+            "cash": None,
+        }
+
+    provider._map_bank_financial_rows = fake_bank_mapper
+
+    provider._build_snapshot_from_rows(
+        symbol="HALKB",
+        raw_rows={},
+        scale_text="TL",
+        period_end="30.06.2026",
+        previous_period_end="30.06.2025",
+    )
+
+    assert called is True

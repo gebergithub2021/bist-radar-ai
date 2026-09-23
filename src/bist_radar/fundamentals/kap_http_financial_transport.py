@@ -273,7 +273,7 @@ class KapHttpFinancialTransport:
         self,
         html: str,
     ) -> dict[str, dict[str, float]]:
-        """Extract required financial rows from KAP HTML."""
+        """Extract available financial rows from KAP HTML."""
 
         xbrl_codes = [
             "ifrs-full_Revenue",
@@ -286,13 +286,18 @@ class KapHttpFinancialTransport:
             "ifrs-full_CashAndCashEquivalents",
         ]
 
-        return {
-            xbrl_code: self._extract_financial_row(
-            html=html,
-            xbrl_code=xbrl_code,
-        )
-            for xbrl_code in xbrl_codes
-        }
+        rows: dict[str, dict[str, float]] = {}
+
+        for xbrl_code in xbrl_codes:
+            try:
+                rows[xbrl_code] = self._extract_financial_row(
+                html=html,
+                xbrl_code=xbrl_code,
+            )
+            except RuntimeError:
+                continue
+
+        return rows
 
     def _build_report(
         self,
