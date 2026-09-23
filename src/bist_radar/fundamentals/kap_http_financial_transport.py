@@ -82,17 +82,40 @@ class KapHttpFinancialTransport:
     ) -> int:
         """Extract the latest financial report disclosure ID."""
 
-    # Current KAP Next.js payload format.
-        payload_matches = re.findall(
+        # Current KAP Next.js payload format.
+        payload_pattern = re.compile(
             (
                 r'\\"disclosureIndex\\":(\d+)'
                 r'(?:(?!\\"disclosureIndex\\":).)*?'
                 r'\\"title\\":\\"Finansal Rapor\\"'
-            ),
-            html,
+                r'(?:(?!\\"disclosureIndex\\":).)*?'
+                r'\\"year\\":(\d{4})'
+                r'(?:(?!\\"disclosureIndex\\":).)*?'
+                r'\\"period\\":(\d+)'
+            )
         )
 
-    # Legacy/simple HTML format used by existing tests.
+        payload_matches = payload_pattern.findall(
+        html
+        )
+
+        if payload_matches:
+            disclosures = [
+                {
+                    "disclosureIndex": int(disclosure_id),
+                    "title": "Finansal Rapor",
+                    "year": int(year),
+                    "period": int(period),
+                 }
+            for disclosure_id, year, period
+            in payload_matches
+            ]
+
+            return self._select_latest_financial_disclosure(
+            disclosures
+            )
+
+        # Legacy/simple HTML format used by existing tests.
         anchor_matches = re.findall(
             (
                 r'<a[^>]+href=["\']'
@@ -103,19 +126,17 @@ class KapHttpFinancialTransport:
             ),
             html,
             flags=re.IGNORECASE,
-        )
+            )
 
-        matches = payload_matches + anchor_matches
-
-        if not matches:
+        if not anchor_matches:
             raise RuntimeError(
             "Financial disclosure ID not found"
             )
 
         return max(
             int(disclosure_id)
-            for disclosure_id in matches
-        )
+            for disclosure_id in anchor_matches
+            )
 
     def _fetch_disclosure_page(
         self,
@@ -326,3 +347,32 @@ class KapHttpFinancialTransport:
             "previous_period_end": previous_period_end,
             "rows": rows,
         }
+    def _select_latest_financial_disclosure(
+        self,
+        disclosures: list[dict],
+    ) -> int:
+        """Return disclosure ID for the latest financial period."""
+
+        financial_reports = [
+        disclosure
+        for disclosure in disclosures
+        if disclosure.get("title") == "Finansal Rapor"
+        and disclosure.get("year") is not None
+        and disclosure.get("period") is not None
+        ]
+
+        if not financial_reports:
+            raise RuntimeError(
+            "Financial disclosure ID not found"
+        )
+
+        latest = max(
+            financial_reports,
+            key=lambda disclosure: (
+                int(disclosure["year"]),
+                int(disclosure["period"]),
+                int(disclosure["disclosureIndex"]),
+            ),
+        )
+
+        return int(latest["disclosureIndex"])

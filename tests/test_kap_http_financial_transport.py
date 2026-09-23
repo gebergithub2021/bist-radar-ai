@@ -832,3 +832,59 @@ def test_extract_financial_rows_includes_bank_interest_income() -> None:
         "current": 250.0,
         "previous": 200.0,
     }
+
+def test_latest_financial_disclosure_prefers_latest_period() -> None:
+    transport = KapHttpFinancialTransport()
+
+    disclosures = [
+        {
+            "disclosureIndex": 2000,
+            "title": "Finansal Rapor",
+            "disclosureClass": "FR",
+            "year": 2026,
+            "period": 2,
+            "donem": "6 Aylık",
+        },
+        {
+            "disclosureIndex": 1900,
+            "title": "Finansal Rapor",
+            "disclosureClass": "FR",
+            "year": 2026,
+            "period": 3,
+            "donem": "9 Aylık",
+        },
+    ]
+
+    disclosure_id = (
+        transport._select_latest_financial_disclosure(
+            disclosures
+        )
+    )
+
+    assert disclosure_id == 1900
+
+def test_latest_financial_disclosure_prefers_latest_id_within_same_period() -> None:
+    transport = KapHttpFinancialTransport()
+
+    disclosures = [
+        {
+            "disclosureIndex": 1900,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 2,
+        },
+        {
+            "disclosureIndex": 2000,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 2,
+        },
+    ]
+
+    disclosure_id = (
+        transport._select_latest_financial_disclosure(
+            disclosures
+        )
+    )
+
+    assert disclosure_id == 2000
