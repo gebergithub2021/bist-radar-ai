@@ -9,7 +9,9 @@ from bist_radar.fundamentals.analysis import (
     calculate_roe,
 )
 from bist_radar.fundamentals.models import FundamentalSnapshot
-
+from bist_radar.fundamentals.analysis import (
+        calculate_ttm_value,
+    )
 
 def test_calculate_roe() -> None:
     roe = calculate_roe(
@@ -269,4 +271,55 @@ def test_analyze_fundamentals_calculates_interest_income_growth() -> None:
     result = analyze_fundamentals(snapshot)
 
     assert result.interest_income_growth == 50.0
+
+def test_analyze_fundamentals_calculates_ttm_roe() -> None:
+    snapshot = FundamentalSnapshot(
+        symbol="ASELS",
+        revenue=1000.0,
+        net_income=100.0,
+        total_assets=5000.0,
+        total_equity=2000.0,
+        total_debt=500.0,
+        cash=200.0,
+        previous_revenue=800.0,
+        previous_net_income=80.0,
+        period_end="30.06.2026",
+        previous_period_end="30.06.2025",
+        ttm_net_income=300.0,
+    )
+
+    result = analyze_fundamentals(
+        snapshot,
+    )
+
+    assert result.roe_ttm == 15.0
+
+def test_calculate_ttm_value_from_interim_and_full_year() -> None:
+    
+    result = calculate_ttm_value(
+        current_interim=150.0,
+        previous_interim=100.0,
+        previous_full_year=240.0,
+    )
+
+    assert result == 290.0
+
+def test_calculate_ttm_value_returns_none_when_data_is_missing() -> None:
+    assert calculate_ttm_value(
+        current_interim=None,
+        previous_interim=100.0,
+        previous_full_year=240.0,
+    ) is None
+
+    assert calculate_ttm_value(
+        current_interim=150.0,
+        previous_interim=None,
+        previous_full_year=240.0,
+    ) is None
+
+    assert calculate_ttm_value(
+        current_interim=150.0,
+        previous_interim=100.0,
+        previous_full_year=None,
+    ) is None
 

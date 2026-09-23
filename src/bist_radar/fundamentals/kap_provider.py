@@ -8,6 +8,7 @@ from bist_radar.fundamentals.sector import (
     FundamentalSector,
     resolve_fundamental_sector,
 )
+from bist_radar.fundamentals.analysis import calculate_ttm_value
 
 
 class KapFundamentalProvider(FundamentalProvider):
@@ -33,6 +34,30 @@ class KapFundamentalProvider(FundamentalProvider):
         return self.financial_client.fetch_report(
         symbol=symbol,
         )
+
+    def _previous_full_year_period(
+        self,
+        period_end: str,
+    ) -> tuple[int, int] | None:
+        """Return previous full-year KAP period for an interim report."""
+
+        if "." in period_end:
+            day_text, month_text, year_text = period_end.split(".")
+        elif "-" in period_end:
+            year_text, month_text, day_text = period_end.split("-")
+        else:
+            raise ValueError(
+                f"Unsupported financial period date: {period_end}"
+            )
+
+        day = int(day_text)
+        month = int(month_text)
+        year = int(year_text)
+
+        if day == 31 and month == 12:
+            return None
+
+        return year - 1, 4
     
     def get_snapshot(
         self,
@@ -41,18 +66,74 @@ class KapFundamentalProvider(FundamentalProvider):
         """Return a fundamental snapshot for a symbol."""
 
         raw_report = self._fetch_report_data(
-        symbol=symbol,
+            symbol=symbol,
         )
 
-        return self._build_snapshot_from_rows(
+        snapshot = self._build_snapshot_from_rows(
             symbol=symbol,
             raw_rows=raw_report["rows"],
             scale_text=raw_report["scale_text"],
             period_end=raw_report.get("period_end"),
             previous_period_end=raw_report.get(
-            "previous_period_end"
+                "previous_period_end"
             ),
         )
+
+        period_end = snapshot.period_end
+
+        if period_end is None:
+            return snapshot
+
+        previous_full_year_period = (
+            self._previous_full_year_period(
+                period_end=period_end,
+            )
+        )
+
+        if previous_full_year_period is None:
+            snapshot.ttm_net_income = snapshot.net_income
+            return snapshot
+
+        year, period = previous_full_year_period
+
+        fetch_report_for_period = getattr(
+            self.financial_client,
+            "fetch_report_for_period",
+            None,
+        )
+
+        if fetch_report_for_period is None:
+            return snapshot
+
+        previous_full_year_report = fetch_report_for_period(
+            symbol=symbol,
+            year=year,
+            period=period,
+        )
+
+        previous_full_year_snapshot = (
+            self._build_snapshot_from_rows(
+                symbol=symbol,
+                raw_rows=previous_full_year_report["rows"],
+                scale_text=previous_full_year_report["scale_text"],
+                period_end=previous_full_year_report.get(
+                    "period_end"
+                ),
+                previous_period_end=previous_full_year_report.get(
+                    "previous_period_end"
+                ),
+            )
+        )
+
+        snapshot.ttm_net_income = calculate_ttm_value(
+            current_interim=snapshot.net_income,
+            previous_interim=snapshot.previous_net_income,
+            previous_full_year=(
+                previous_full_year_snapshot.net_income
+            ),
+        )
+
+        return snapshot
 
     def _build_snapshot(
         self,

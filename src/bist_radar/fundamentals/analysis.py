@@ -74,6 +74,28 @@ def calculate_growth_rate(
         / previous_value
     ) * 100
 
+def calculate_ttm_value(
+    current_interim: float | None,
+    previous_interim: float | None,
+    previous_full_year: float | None,
+) -> float | None:
+    """Calculate trailing twelve-month value."""
+
+    if current_interim is None:
+        return None
+
+    if previous_interim is None:
+        return None
+
+    if previous_full_year is None:
+        return None
+
+    return (
+        previous_full_year
+        - previous_interim
+        + current_interim
+    )
+
 def analyze_fundamentals(
     snapshot: FundamentalSnapshot,
     ) -> FundamentalAnalysisResult:
@@ -109,4 +131,8 @@ def analyze_fundamentals(
         current_value=snapshot.interest_income,
         previous_value=snapshot.previous_interest_income,
         ),
+        roe_ttm=calculate_roe(
+        net_income=snapshot.ttm_net_income,
+        total_equity=snapshot.total_equity,
+),
 )

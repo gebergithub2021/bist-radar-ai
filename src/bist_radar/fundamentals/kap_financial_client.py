@@ -24,3 +24,22 @@ class KapFinancialClient:
         return self.transport.fetch_report(
             symbol=symbol,
         )
+
+    def fetch_report_for_period(
+        self,
+        symbol: str,
+        year: int,
+        period: int,
+    ) -> dict:
+        """Fetch financial report data for a specific period."""
+
+        if self.transport is None:
+            raise RuntimeError(
+                "KAP financial transport is not configured"
+            )
+
+        return self.transport.fetch_report_for_period(
+            symbol=symbol,
+            year=year,
+            period=period,
+        )

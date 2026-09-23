@@ -20,6 +20,7 @@ class FundamentalSnapshot:
     previous_period_end: str | None = None
     interest_income: float | None = None
     previous_interest_income: float | None = None
+    ttm_net_income: float | None = None
 
 @dataclass
 class FundamentalAnalysisResult:
@@ -33,3 +34,4 @@ class FundamentalAnalysisResult:
     debt_to_equity: float | None
     net_debt: float | None
     interest_income_growth: float | None = None
+    roe_ttm: float | None = None

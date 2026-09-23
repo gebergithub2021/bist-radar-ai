@@ -1083,3 +1083,108 @@ def test_fetch_report_validates_selected_financial_period() -> None:
         transport.fetch_report(
             symbol="HALKB",
         )
+def test_select_financial_disclosure_metadata_for_period() -> None:
+    transport = KapHttpFinancialTransport()
+
+    disclosures = [
+        {
+            "disclosureIndex": 1800,
+            "title": "Finansal Rapor",
+            "year": 2025,
+            "period": 2,
+        },
+        {
+            "disclosureIndex": 1900,
+            "title": "Finansal Rapor",
+            "year": 2025,
+            "period": 4,
+        },
+        {
+            "disclosureIndex": 2000,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 2,
+        },
+    ]
+
+    metadata = (
+        transport._select_financial_disclosure_metadata_for_period(
+            disclosures=disclosures,
+            year=2025,
+            period=4,
+        )
+    )
+
+    assert metadata == {
+        "disclosureIndex": 1900,
+        "title": "Finansal Rapor",
+        "year": 2025,
+        "period": 4,
+    }
+
+def test_select_financial_disclosure_for_period_prefers_latest_id() -> None:
+    transport = KapHttpFinancialTransport()
+
+    disclosures = [
+        {
+            "disclosureIndex": 1900,
+            "title": "Finansal Rapor",
+            "year": 2025,
+            "period": 4,
+        },
+        {
+            "disclosureIndex": 1950,
+            "title": "Finansal Rapor",
+            "year": 2025,
+            "period": 4,
+        },
+        {
+            "disclosureIndex": 2000,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 2,
+        },
+    ]
+
+    metadata = (
+        transport._select_financial_disclosure_metadata_for_period(
+            disclosures=disclosures,
+            year=2025,
+            period=4,
+        )
+    )
+
+    assert metadata["disclosureIndex"] == 1950
+
+def test_fetch_report_for_period_fetches_selected_financial_report() -> None:
+    transport = KapHttpFinancialTransport()
+
+    transport._find_financial_disclosure_metadata_for_period = (
+        lambda symbol, year, period: {
+            "disclosureIndex": 1900,
+            "title": "Finansal Rapor",
+            "year": year,
+            "period": period,
+        }
+    )
+
+    transport._fetch_disclosure_page = (
+        lambda disclosure_id: "<html>financial report</html>"
+    )
+
+    transport._build_report = (
+        lambda html: {
+            "scale_text": "1.000 TL",
+            "period_end": "31.12.2025",
+            "previous_period_end": "31.12.2024",
+            "rows": {},
+        }
+    )
+
+    report = transport.fetch_report_for_period(
+        symbol="ASELS",
+        year=2025,
+        period=4,
+    )
+
+    assert report["period_end"] == "31.12.2025"

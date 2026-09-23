@@ -55,7 +55,11 @@ def _calculate_bank_score(
     metrics = [
         (
             _score_positive_metric(
-                value=result.roe,
+                value=(
+                    result.roe_ttm
+                    if result.roe_ttm is not None
+                    else result.roe
+                ),
                 maximum=20.0,
             ),
             0.40,
@@ -106,7 +110,11 @@ def _calculate_standard_score(
     metrics = [
         (
             _score_positive_metric(
-                value=result.roe,
+                value=(
+                    result.roe_ttm
+                    if result.roe_ttm is not None
+                    else result.roe
+                ),
                 maximum=25.0,
             ),
             0.25,

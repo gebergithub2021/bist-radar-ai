@@ -129,3 +129,22 @@ def test_fundamental_score_floors_weak_metrics_at_zero() -> None:
     assert score == pytest.approx(
         0.0,
     )
+
+def test_fundamental_score_prefers_ttm_roe() -> None:
+    result = FundamentalAnalysisResult(
+        symbol="ASELS",
+        roe=5.0,
+        net_margin=None,
+        revenue_growth=None,
+        net_income_growth=None,
+        debt_to_equity=None,
+        net_debt=None,
+        interest_income_growth=None,
+        roe_ttm=20.0,
+    )
+
+    score = calculate_fundamental_score(
+        result=result,
+    )
+
+    assert score == pytest.approx(80.0)

@@ -80,6 +80,40 @@ class KapHttpFinancialTransport:
             disclosures
         )
 
+    def _find_financial_disclosure_metadata_for_period(
+        self,
+        symbol: str,
+        year: int,
+        period: int,
+    ) -> dict:
+        """Find financial disclosure metadata for a specific period."""
+
+        if self.session is None:
+            raise RuntimeError(
+            "KAP HTTP session is not configured"
+            )
+
+        member_id = self._resolve_member_id(
+            symbol=symbol,
+        )
+
+        url = self._build_financial_search_url(
+            member_id=member_id,
+        )
+
+        response = self.session.get(url)
+        response.raise_for_status()
+
+        disclosures = self._extract_financial_disclosures(
+            html=response.text,
+        )
+
+        return self._select_financial_disclosure_metadata_for_period(
+            disclosures=disclosures,
+            year=year,
+            period=period,
+        )
+
     def _find_latest_financial_disclosure(
         self,
         symbol: str,
@@ -225,6 +259,42 @@ class KapHttpFinancialTransport:
         self._validate_financial_period(
             year=int(selected["year"]),
             period=int(selected["period"]),
+            actual_period_end=report["period_end"],
+        )
+
+        return report
+
+    def fetch_report_for_period(
+        self,
+        symbol: str,
+        year: int,
+        period: int,
+    ) -> dict:
+        """Fetch a KAP financial report for a specific period."""
+
+        metadata = (
+            self._find_financial_disclosure_metadata_for_period(
+                symbol=symbol,
+                year=year,
+                period=period,
+            )
+        )
+
+        disclosure_id = int(
+            metadata["disclosureIndex"]
+        )
+
+        html = self._fetch_disclosure_page(
+            disclosure_id=disclosure_id,
+        )
+
+        report = self._build_report(
+            html=html,
+        )
+
+        self._validate_financial_period(
+            year=year,
+            period=period,
             actual_period_end=report["period_end"],
         )
 
@@ -429,6 +499,37 @@ class KapHttpFinancialTransport:
             int(disclosure["year"]),
             int(disclosure["period"]),
             int(disclosure["disclosureIndex"]),
+        ),
+    )
+
+    def _select_financial_disclosure_metadata_for_period(
+        self,
+        disclosures: list[dict],
+        year: int,
+        period: int,
+    ) -> dict:
+        """Return financial disclosure metadata for a specific period."""
+
+        matching_disclosures = [
+            disclosure
+            for disclosure in disclosures
+            if disclosure.get("title") == "Finansal Rapor"
+            and disclosure.get("year") is not None
+            and disclosure.get("period") is not None
+            and int(disclosure["year"]) == year
+            and int(disclosure["period"]) == period
+        ]
+
+        if not matching_disclosures:
+            raise RuntimeError(
+                "Financial disclosure not found for period: "
+                f"{year}/{period}"
+            )
+
+        return max(
+            matching_disclosures,
+            key=lambda disclosure: int(
+            disclosure["disclosureIndex"]
         ),
     )
     

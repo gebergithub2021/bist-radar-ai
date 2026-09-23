@@ -623,3 +623,73 @@ def test_bank_financial_rows_map_interest_income() -> None:
 
     assert mapped["interest_income"] == 250.0
     assert mapped["previous_interest_income"] == 200.0
+
+def test_previous_full_year_period_for_interim_report() -> None:
+    provider = KapFundamentalProvider()
+
+    period = provider._previous_full_year_period(
+        period_end="30.06.2026",
+    )
+
+    assert period == (2025, 4)
+
+def test_previous_full_year_period_returns_none_for_full_year() -> None:
+    provider = KapFundamentalProvider()
+
+    period = provider._previous_full_year_period(
+        period_end="31.12.2026",
+    )
+
+    assert period is None
+
+def test_get_snapshot_calculates_ttm_net_income_for_interim_report() -> None:
+    class FakeFinancialClient:
+        def fetch_report(
+            self,
+            symbol: str,
+        ) -> dict:
+            assert symbol == "ASELS"
+
+            return {
+                "scale_text": "TL",
+                "period_end": "30.06.2026",
+                "previous_period_end": "30.06.2025",
+                "rows": {
+                    "ifrs-full_ProfitLoss": {
+                        "current": 150.0,
+                        "previous": 100.0,
+                    },
+                },
+            }
+
+        def fetch_report_for_period(
+            self,
+            symbol: str,
+            year: int,
+            period: int,
+        ) -> dict:
+            assert symbol == "ASELS"
+            assert year == 2025
+            assert period == 4
+
+            return {
+                "scale_text": "TL",
+                "period_end": "31.12.2025",
+                "previous_period_end": "31.12.2024",
+                "rows": {
+                    "ifrs-full_ProfitLoss": {
+                        "current": 240.0,
+                        "previous": 200.0,
+                    },
+                },
+            }
+
+    provider = KapFundamentalProvider(
+        financial_client=FakeFinancialClient(),
+    )
+
+    snapshot = provider.get_snapshot(
+        symbol="ASELS",
+    )
+
+    assert snapshot.ttm_net_income == 290.0

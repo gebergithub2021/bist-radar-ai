@@ -45,3 +45,34 @@ def test_kap_financial_client_uses_transport() -> None:
     assert report["period_end"] == "2026-06-30"
     assert report["previous_period_end"] == "2025-06-30"
     assert report["rows"] == {}
+
+def test_kap_financial_client_fetches_report_for_period() -> None:
+    class FakeTransport:
+        def fetch_report_for_period(
+            self,
+            symbol: str,
+            year: int,
+            period: int,
+        ) -> dict:
+            assert symbol == "ASELS"
+            assert year == 2025
+            assert period == 4
+
+            return {
+                "scale_text": "1.000 TL",
+                "period_end": "31.12.2025",
+                "previous_period_end": "31.12.2024",
+                "rows": {},
+            }
+
+    client = KapFinancialClient(
+        transport=FakeTransport(),
+    )
+
+    report = client.fetch_report_for_period(
+        symbol="ASELS",
+        year=2025,
+        period=4,
+    )
+
+    assert report["period_end"] == "31.12.2025"
