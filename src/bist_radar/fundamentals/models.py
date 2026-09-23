@@ -20,7 +20,7 @@ class FundamentalSnapshot:
     previous_period_end: str | None = None
     interest_income: float | None = None
     previous_interest_income: float | None = None
-    
+
 @dataclass
 class FundamentalAnalysisResult:
     """Calculated fundamental analysis metrics."""
@@ -32,3 +32,4 @@ class FundamentalAnalysisResult:
     net_income_growth: float | None
     debt_to_equity: float | None
     net_debt: float | None
+    interest_income_growth: float | None = None

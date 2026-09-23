@@ -82,27 +82,31 @@ def analyze_fundamentals(
     return FundamentalAnalysisResult(
         symbol=snapshot.symbol,
         roe=calculate_roe(
-            net_income=snapshot.net_income,
-            total_equity=snapshot.total_equity,
+        net_income=snapshot.net_income,
+        total_equity=snapshot.total_equity,
         ),
         net_margin=calculate_net_margin(
-            net_income=snapshot.net_income,
-            revenue=snapshot.revenue,
+        net_income=snapshot.net_income,
+        revenue=snapshot.revenue,
         ),
         revenue_growth=calculate_growth_rate(
-            current_value=snapshot.revenue,
-            previous_value=snapshot.previous_revenue,
+        current_value=snapshot.revenue,
+        previous_value=snapshot.previous_revenue,
         ),
         net_income_growth=calculate_growth_rate(
-            current_value=snapshot.net_income,
-            previous_value=snapshot.previous_net_income,
+        current_value=snapshot.net_income,
+        previous_value=snapshot.previous_net_income,
         ),
         debt_to_equity=calculate_debt_to_equity(
-            total_debt=snapshot.total_debt,
-            total_equity=snapshot.total_equity,
+        total_debt=snapshot.total_debt,
+        total_equity=snapshot.total_equity,
         ),
         net_debt=calculate_net_debt(
-            total_debt=snapshot.total_debt,
-            cash=snapshot.cash,
+        total_debt=snapshot.total_debt,
+        cash=snapshot.cash,
         ),
-    )
+        interest_income_growth=calculate_growth_rate(
+        current_value=snapshot.interest_income,
+        previous_value=snapshot.previous_interest_income,
+        ),
+)

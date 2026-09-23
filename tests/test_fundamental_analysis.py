@@ -252,3 +252,21 @@ def test_fundamental_snapshot_supports_bank_interest_income() -> None:
     assert snapshot.interest_income == 50.0
     assert snapshot.previous_interest_income == 40.0
 
+def test_analyze_fundamentals_calculates_interest_income_growth() -> None:
+    snapshot = FundamentalSnapshot(
+        symbol="HALKB",
+        revenue=None,
+        net_income=20.0,
+        total_assets=300.0,
+        total_equity=100.0,
+        total_debt=None,
+        cash=None,
+        previous_net_income=10.0,
+        interest_income=150.0,
+        previous_interest_income=100.0,
+    )
+
+    result = analyze_fundamentals(snapshot)
+
+    assert result.interest_income_growth == 50.0
+
