@@ -27,3 +27,9 @@ def test_resolve_garan_as_bank_sector() -> None:
         resolve_fundamental_sector("GARAN")
         == FundamentalSector.BANK
     )
+
+def test_resolve_akbnk_as_bank_sector() -> None:
+    assert (
+        resolve_fundamental_sector("AKBNK")
+        == FundamentalSector.BANK
+    )

@@ -11,6 +11,7 @@ class FundamentalSector(str, Enum):
 
 
 _BANK_SYMBOLS = {
+    "AKBNK",
     "GARAN",
     "HALKB",
     "ISCTR",
