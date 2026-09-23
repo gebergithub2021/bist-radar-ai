@@ -312,8 +312,13 @@ def test_kap_http_financial_transport_fetch_report_builds_report():
         session=FakeSession(),
     )
 
-    transport._find_latest_financial_disclosure = (
-        lambda symbol: 1643141
+    transport._find_latest_financial_disclosure_metadata = (
+        lambda symbol: {
+            "disclosureIndex": 1643141,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 2,
+        }
     )
 
     expected_report = {
@@ -888,3 +893,193 @@ def test_latest_financial_disclosure_prefers_latest_id_within_same_period() -> N
     )
 
     assert disclosure_id == 2000
+
+def test_financial_period_end_maps_kap_period_to_date() -> None:
+    transport = KapHttpFinancialTransport()
+
+    assert transport._financial_period_end(
+        year=2026,
+        period=1,
+    ) == "31.03.2026"
+
+    assert transport._financial_period_end(
+        year=2026,
+        period=2,
+    ) == "30.06.2026"
+
+    assert transport._financial_period_end(
+        year=2026,
+        period=3,
+    ) == "30.09.2026"
+
+    assert transport._financial_period_end(
+        year=2026,
+        period=4,
+    ) == "31.12.2026"
+
+def test_select_latest_financial_disclosure_metadata() -> None:
+    transport = KapHttpFinancialTransport()
+
+    disclosures = [
+        {
+            "disclosureIndex": 2000,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 2,
+        },
+        {
+            "disclosureIndex": 1900,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 3,
+        },
+    ]
+
+    selected = (
+        transport._select_latest_financial_disclosure_metadata(
+            disclosures
+        )
+    )
+
+    assert selected == {
+        "disclosureIndex": 1900,
+        "title": "Finansal Rapor",
+        "year": 2026,
+        "period": 3,
+    }
+def test_extract_financial_disclosures_from_next_payload() -> None:
+    transport = KapHttpFinancialTransport()
+
+    html = (
+        r'\"disclosureIndex\":2000,'
+        r'\"title\":\"Finansal Rapor\",'
+        r'\"year\":2026,'
+        r'\"period\":2,'
+        r'\"disclosureIndex\":1900,'
+        r'\"title\":\"Finansal Rapor\",'
+        r'\"year\":2026,'
+        r'\"period\":3'
+    )
+
+    disclosures = (
+        transport._extract_financial_disclosures(
+            html=html,
+        )
+    )
+
+    assert disclosures == [
+        {
+            "disclosureIndex": 2000,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 2,
+        },
+        {
+            "disclosureIndex": 1900,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 3,
+        },
+    ]
+
+def test_find_latest_financial_disclosure_metadata() -> None:
+    class FakeResponse:
+        text = (
+            r'\"disclosureIndex\":2000,'
+            r'\"title\":\"Finansal Rapor\",'
+            r'\"year\":2026,'
+            r'\"period\":2,'
+            r'\"disclosureIndex\":1900,'
+            r'\"title\":\"Finansal Rapor\",'
+            r'\"year\":2026,'
+            r'\"period\":3'
+        )
+
+        def raise_for_status(self):
+            pass
+
+    class FakeSession:
+        def get(self, url):
+            return FakeResponse()
+
+    transport = KapHttpFinancialTransport(
+        session=FakeSession(),
+    )
+
+    transport._resolve_member_id = (
+        lambda symbol: "1234"
+    )
+
+    selected = (
+        transport._find_latest_financial_disclosure_metadata(
+            symbol="ASELS",
+        )
+    )
+
+    assert selected == {
+        "disclosureIndex": 1900,
+        "title": "Finansal Rapor",
+        "year": 2026,
+        "period": 3,
+    }
+
+def test_validate_financial_period_accepts_matching_period() -> None:
+    transport = KapHttpFinancialTransport()
+
+    transport._validate_financial_period(
+        year=2026,
+        period=2,
+        actual_period_end="30.06.2026",
+    )
+
+def test_validate_financial_period_rejects_mismatch() -> None:
+    transport = KapHttpFinancialTransport()
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "Financial report period mismatch: "
+            "expected 30.06.2026, got 31.03.2026"
+        ),
+    ):
+        transport._validate_financial_period(
+            year=2026,
+            period=2,
+            actual_period_end="31.03.2026",
+        )
+
+def test_fetch_report_validates_selected_financial_period() -> None:
+    transport = KapHttpFinancialTransport()
+
+    transport._find_latest_financial_disclosure_metadata = (
+        lambda symbol: {
+            "disclosureIndex": 1645596,
+            "title": "Finansal Rapor",
+            "year": 2026,
+            "period": 2,
+        }
+    )
+
+    transport._fetch_disclosure_page = (
+        lambda disclosure_id: "<html>detail</html>"
+    )
+
+    transport._build_report = (
+        lambda html: {
+            "scale_text": "1.000 TL",
+            "period_end": "31.03.2026",
+            "previous_period_end": "31.03.2025",
+            "rows": {},
+        }
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match=(
+            "Financial report period mismatch: "
+            "expected 30.06.2026, got 31.03.2026"
+        ),
+    ):
+        transport.fetch_report(
+            symbol="HALKB",
+        )

@@ -50,6 +50,36 @@ class KapHttpFinancialTransport:
             f"&member={member_id}"
         )
 
+    def _find_latest_financial_disclosure_metadata(
+        self,
+        symbol: str,
+    ) -> dict:
+        """Find metadata for the latest financial disclosure."""
+
+        if self.session is None:
+            raise RuntimeError(
+                "KAP HTTP session is not configured"
+            )
+
+        member_id = self._resolve_member_id(
+            symbol=symbol,
+        )
+
+        url = self._build_financial_search_url(
+            member_id=member_id,
+        )
+
+        response = self.session.get(url)
+        response.raise_for_status()
+
+        disclosures = self._extract_financial_disclosures(
+            html=response.text,
+        )
+
+        return self._select_latest_financial_disclosure_metadata(
+            disclosures
+        )
+
     def _find_latest_financial_disclosure(
         self,
         symbol: str,
@@ -58,7 +88,7 @@ class KapHttpFinancialTransport:
 
         if self.session is None:
             raise RuntimeError(
-            "KAP HTTP session is not configured"
+                "KAP HTTP session is not configured"
             )
 
         member_id = self._resolve_member_id(
@@ -75,14 +105,13 @@ class KapHttpFinancialTransport:
         return self._extract_disclosure_id(
             html=response.text,
         )
-
-    def _extract_disclosure_id(
+    
+    def _extract_financial_disclosures(
         self,
         html: str,
-    ) -> int:
-        """Extract the latest financial report disclosure ID."""
+    ) -> list[dict]:
+        """Extract financial disclosure metadata from KAP payload."""
 
-        # Current KAP Next.js payload format.
         payload_pattern = re.compile(
             (
                 r'\\"disclosureIndex\\":(\d+)'
@@ -96,24 +125,35 @@ class KapHttpFinancialTransport:
         )
 
         payload_matches = payload_pattern.findall(
-        html
+            html
         )
 
-        if payload_matches:
-            disclosures = [
-                {
-                    "disclosureIndex": int(disclosure_id),
-                    "title": "Finansal Rapor",
-                    "year": int(year),
-                    "period": int(period),
-                 }
+        return [
+            {
+                "disclosureIndex": int(disclosure_id),
+                "title": "Finansal Rapor",
+                "year": int(year),
+                "period": int(period),
+            }
             for disclosure_id, year, period
             in payload_matches
-            ]
+        ]
 
+    def _extract_disclosure_id(
+        self,
+        html: str,
+    ) -> int:
+        """Extract the latest financial report disclosure ID."""
+
+        # Current KAP Next.js payload format.
+        disclosures = self._extract_financial_disclosures(
+            html=html,
+        )
+
+        if disclosures:
             return self._select_latest_financial_disclosure(
             disclosures
-            )
+        )
 
         # Legacy/simple HTML format used by existing tests.
         anchor_matches = re.findall(
@@ -164,17 +204,32 @@ class KapHttpFinancialTransport:
     ) -> dict:
         """Fetch and build the latest KAP financial report."""
 
-        disclosure_id = self._find_latest_financial_disclosure(
-        symbol=symbol,
+        selected = (
+            self._find_latest_financial_disclosure_metadata(
+            symbol=symbol,
+            )
+        )
+
+        disclosure_id = int(
+            selected["disclosureIndex"]
         )
 
         html = self._fetch_disclosure_page(
-        disclosure_id=disclosure_id,
+            disclosure_id=disclosure_id,
         )
 
-        return self._build_report(
-        html=html,
+        report = self._build_report(
+            html=html,
         )
+
+        self._validate_financial_period(
+            year=int(selected["year"]),
+            period=int(selected["period"]),
+            actual_period_end=report["period_end"],
+        )
+
+        return report
+    
     def _extract_scale_text(
         self,
         html: str,
@@ -347,32 +402,89 @@ class KapHttpFinancialTransport:
             "previous_period_end": previous_period_end,
             "rows": rows,
         }
+
+    def _select_latest_financial_disclosure_metadata(
+        self,
+        disclosures: list[dict],
+    ) -> dict:
+        """Return metadata for the latest financial disclosure."""
+
+        financial_reports = [
+            disclosure
+            for disclosure in disclosures
+            if disclosure.get("title") == "Finansal Rapor"
+            and disclosure.get("year") is not None
+            and disclosure.get("period") is not None
+            and disclosure.get("disclosureIndex") is not None
+        ]
+
+        if not financial_reports:
+            raise RuntimeError(
+                "Financial disclosure ID not found"
+        )
+
+        return max(
+            financial_reports,
+            key=lambda disclosure: (
+            int(disclosure["year"]),
+            int(disclosure["period"]),
+            int(disclosure["disclosureIndex"]),
+        ),
+    )
+    
     def _select_latest_financial_disclosure(
         self,
         disclosures: list[dict],
     ) -> int:
         """Return disclosure ID for the latest financial period."""
 
-        financial_reports = [
-        disclosure
-        for disclosure in disclosures
-        if disclosure.get("title") == "Finansal Rapor"
-        and disclosure.get("year") is not None
-        and disclosure.get("period") is not None
-        ]
+        selected = (
+            self._select_latest_financial_disclosure_metadata(
+                disclosures
+            )
+        )
 
-        if not financial_reports:
+        return int(selected["disclosureIndex"])
+
+    def _financial_period_end(
+        self,
+        year: int,
+        period: int,
+    ) -> str:
+        """Return the expected period-end date for a KAP period."""
+
+        period_ends = {
+            1: "31.03",
+            2: "30.06",
+            3: "30.09",
+            4: "31.12",
+        }
+
+        period_end = period_ends.get(period)
+
+        if period_end is None:
             raise RuntimeError(
-            "Financial disclosure ID not found"
+                f"Unsupported financial period: {period}"
         )
 
-        latest = max(
-            financial_reports,
-            key=lambda disclosure: (
-                int(disclosure["year"]),
-                int(disclosure["period"]),
-                int(disclosure["disclosureIndex"]),
-            ),
+        return f"{period_end}.{year}"
+
+    def _validate_financial_period(
+        self,
+        year: int,
+        period: int,
+        actual_period_end: str,
+    ) -> None:
+        """Validate that the fetched report matches the selected KAP period."""
+
+        expected_period_end = self._financial_period_end(
+            year=year,
+            period=period,
         )
 
-        return int(latest["disclosureIndex"])
+        if actual_period_end != expected_period_end:
+            raise RuntimeError(
+                "Financial report period mismatch: "
+                f"expected {expected_period_end}, "
+                f"got {actual_period_end}"
+            )
