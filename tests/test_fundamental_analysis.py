@@ -206,3 +206,32 @@ def test_analyze_fundamentals_handles_missing_data() -> None:
     assert result.debt_to_equity is None
     assert result.net_debt is None
 
+def test_analyze_fundamentals_handles_partial_bank_snapshot() -> None:
+    snapshot = FundamentalSnapshot(
+        symbol="HALKB",
+        revenue=None,
+        net_income=18_612_000_000.0,
+        total_assets=3_282_084_000_000.0,
+        total_equity=231_566_000_000.0,
+        total_debt=None,
+        cash=None,
+        previous_revenue=None,
+        previous_net_income=13_808_000_000.0,
+        period_end="30.06.2026",
+        previous_period_end="30.06.2025",
+    )
+
+    result = analyze_fundamentals(
+        snapshot
+    )
+
+    assert result.symbol == "HALKB"
+
+    assert result.roe is not None
+    assert result.net_income_growth is not None
+
+    assert result.net_margin is None
+    assert result.revenue_growth is None
+    assert result.debt_to_equity is None
+    assert result.net_debt is None
+
