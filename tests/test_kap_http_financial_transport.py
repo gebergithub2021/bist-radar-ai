@@ -797,3 +797,38 @@ def test_extract_financial_rows_skips_missing_rows() -> None:
     assert "ifrs-full_ProfitLoss" in rows
     assert "ifrs-full_Assets" in rows
     assert "ifrs-full_Equity" in rows
+
+def test_extract_financial_rows_includes_bank_interest_income() -> None:
+    transport = KapHttpFinancialTransport()
+
+    requested_codes = []
+
+    def fake_extract_financial_row(
+        html: str,
+        xbrl_code: str,
+    ) -> dict[str, float]:
+        requested_codes.append(xbrl_code)
+
+        if xbrl_code == "kap-fr_InterestIncome":
+            return {
+                "current": 250.0,
+                "previous": 200.0,
+            }
+
+        raise RuntimeError(
+            f"Financial row not found: {xbrl_code}"
+        )
+
+    transport._extract_financial_row = (
+        fake_extract_financial_row
+    )
+
+    rows = transport._extract_financial_rows(
+        html="fake-html",
+    )
+
+    assert "kap-fr_InterestIncome" in requested_codes
+    assert rows["kap-fr_InterestIncome"] == {
+        "current": 250.0,
+        "previous": 200.0,
+    }

@@ -284,6 +284,7 @@ class KapHttpFinancialTransport:
             "kap-fr_CurrentPortionOfNoncurrentBorrowings",
             "ifrs-full_LongtermBorrowings",
             "ifrs-full_CashAndCashEquivalents",
+            "kap-fr_InterestIncome",
         ]
 
         rows: dict[str, dict[str, float]] = {}

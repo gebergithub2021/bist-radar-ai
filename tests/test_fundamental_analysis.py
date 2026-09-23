@@ -235,3 +235,20 @@ def test_analyze_fundamentals_handles_partial_bank_snapshot() -> None:
     assert result.debt_to_equity is None
     assert result.net_debt is None
 
+def test_fundamental_snapshot_supports_bank_interest_income() -> None:
+    snapshot = FundamentalSnapshot(
+        symbol="AKBNK",
+        revenue=None,
+        net_income=20.0,
+        total_assets=300.0,
+        total_equity=100.0,
+        total_debt=None,
+        cash=None,
+        previous_net_income=10.0,
+        interest_income=50.0,
+        previous_interest_income=40.0,
+    )
+
+    assert snapshot.interest_income == 50.0
+    assert snapshot.previous_interest_income == 40.0
+

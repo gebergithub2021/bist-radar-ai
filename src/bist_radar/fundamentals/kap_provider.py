@@ -101,9 +101,18 @@ class KapFundamentalProvider(FundamentalProvider):
         ),
         period_end=raw_data.get("period_end"),
         previous_period_end=raw_data.get(
-            "previous_period_end"
+        "previous_period_end"
+        ),
+        interest_income=self._normalize_amount(
+            raw_data.get("interest_income"),
+            scale,
+        ),
+        previous_interest_income=self._normalize_amount(
+            raw_data.get("previous_interest_income"),
+            scale,
         ),
     )
+    
     def _normalize_amount(
         self,
         value: float | None,
@@ -220,7 +229,12 @@ class KapFundamentalProvider(FundamentalProvider):
         self,
         raw_rows: dict[str, dict[str, float | None]],
     ) -> dict[str, float | None]:
-        """Map bank financial rows to internal field names."""
+        """Map KAP bank financial rows to internal field names."""
+
+        interest_income_row = raw_rows.get(
+            "kap-fr_InterestIncome",
+            {},
+        )
 
         net_income_row = raw_rows.get(
             "ifrs-full_ProfitLoss",
@@ -246,7 +260,11 @@ class KapFundamentalProvider(FundamentalProvider):
             "total_equity": equity_row.get("current"),
             "total_debt": None,
             "cash": None,
-        }
+            "interest_income": interest_income_row.get("current"),
+            "previous_interest_income": interest_income_row.get(
+            "previous"
+        ),
+    }
 
     def _build_snapshot_from_rows(
         self,

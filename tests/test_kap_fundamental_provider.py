@@ -1,4 +1,4 @@
-"""Tests for KAP fundamental data provider."""
+﻿"""Tests for KAP fundamental data provider."""
 
 import pytest
 
@@ -386,7 +386,7 @@ def test_kap_fundamental_provider_builds_snapshot_from_financial_rows() -> None:
     snapshot = provider._build_snapshot_from_rows(
         symbol="ASELS",
         raw_rows=raw_rows,
-        scale_text="1000 TL",
+        scale_text="1.000 TL",
         period_end="2026-06-30",
         previous_period_end="2025-06-30",
     )
@@ -577,16 +577,49 @@ def test_bank_symbol_uses_bank_row_mapping() -> None:
             "total_equity": 500.0,
             "total_debt": None,
             "cash": None,
+            "interest_income": 250.0,
+            "previous_interest_income": 200.0,
         }
 
     provider._map_bank_financial_rows = fake_bank_mapper
 
-    provider._build_snapshot_from_rows(
+    snapshot = provider._build_snapshot_from_rows(
         symbol="HALKB",
         raw_rows={},
         scale_text="TL",
-        period_end="30.06.2026",
-        previous_period_end="30.06.2025",
+        period_end="2026-06-30",
+        previous_period_end="2025-06-30",
     )
 
     assert called is True
+    assert snapshot.interest_income == 250.0
+    assert snapshot.previous_interest_income == 200.0
+
+def test_bank_financial_rows_map_interest_income() -> None:
+    provider = KapFundamentalProvider()
+
+    raw_rows = {
+        "kap-fr_InterestIncome": {
+            "current": 250.0,
+            "previous": 200.0,
+        },
+        "ifrs-full_ProfitLoss": {
+            "current": 100.0,
+            "previous": 80.0,
+        },
+        "ifrs-full_Assets": {
+            "current": 1000.0,
+            "previous": 900.0,
+        },
+        "ifrs-full_Equity": {
+            "current": 500.0,
+            "previous": 450.0,
+        },
+    }
+
+    mapped = provider._map_bank_financial_rows(
+        raw_rows
+    )
+
+    assert mapped["interest_income"] == 250.0
+    assert mapped["previous_interest_income"] == 200.0

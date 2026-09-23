@@ -18,7 +18,9 @@ class FundamentalSnapshot:
     previous_net_income: float | None = None
     period_end: str | None = None
     previous_period_end: str | None = None
-
+    interest_income: float | None = None
+    previous_interest_income: float | None = None
+    
 @dataclass
 class FundamentalAnalysisResult:
     """Calculated fundamental analysis metrics."""
