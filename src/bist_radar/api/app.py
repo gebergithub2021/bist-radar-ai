@@ -33,6 +33,9 @@ from bist_radar.fundamentals.kap_member_resolver import (
 from bist_radar.fundamentals.kap_provider import (
     KapFundamentalProvider,
 )
+from bist_radar.fundamentals.scoring import (
+    calculate_fundamental_score,
+)
 
 
 app = FastAPI(
@@ -287,6 +290,7 @@ def bist100_analysis(
                     {
                         "symbol": fundamental.symbol,
                         "roe": fundamental.roe,
+                        "roe_ttm": fundamental.roe_ttm,
                         "net_margin": fundamental.net_margin,
                         "revenue_growth": (
                             fundamental.revenue_growth
@@ -294,10 +298,18 @@ def bist100_analysis(
                         "net_income_growth": (
                             fundamental.net_income_growth
                         ),
+                        "interest_income_growth": (
+                            fundamental.interest_income_growth
+                        ),
                         "debt_to_equity": (
                             fundamental.debt_to_equity
                         ),
                         "net_debt": fundamental.net_debt,
+                        "fundamental_score": (
+                            calculate_fundamental_score(
+                                fundamental
+                            )
+                        ),
                     }
                     if fundamental is not None
                     else None

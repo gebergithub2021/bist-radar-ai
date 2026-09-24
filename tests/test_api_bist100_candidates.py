@@ -222,6 +222,7 @@ class FakeFundamentalProvider:
             previous_net_income=10.0,
             period_end="30.06.2026",
             previous_period_end="30.06.2025",
+            ttm_net_income=25.0,
         )
 
 
@@ -258,11 +259,14 @@ def test_bist100_analysis_returns_technical_and_fundamental_data() -> None:
         assert result["fundamental"] == {
             "symbol": "ASELS",
             "roe": 20.0,
+            "roe_ttm": 25.0,
             "net_margin": 10.0,
             "revenue_growth": 25.0,
             "net_income_growth": 100.0,
+            "interest_income_growth": None,
             "debt_to_equity": 0.4,
             "net_debt": 30.0,
+            "fundamental_score": 86.66666666666667,
         }
     finally:
         if original_override is None:
@@ -371,11 +375,14 @@ def test_bist100_analysis_serializes_partial_bank_fundamentals() -> None:
         assert result["fundamental"] == {
             "symbol": "ASELS",
             "roe": 20.0,
+            "roe_ttm": None,
             "net_margin": None,
             "revenue_growth": None,
             "net_income_growth": 100.0,
+            "interest_income_growth": None,
             "debt_to_equity": None,
             "net_debt": None,
+            "fundamental_score": 88.88888888888889,
         }
     finally:
         if original_override is None:
