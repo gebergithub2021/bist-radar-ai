@@ -1032,20 +1032,40 @@ def test_validate_financial_period_accepts_matching_period() -> None:
         actual_period_end="30.06.2026",
     )
 
-def test_validate_financial_period_rejects_mismatch() -> None:
+def test_validate_financial_period_accepts_non_calendar_period_end() -> None:
+    transport = KapHttpFinancialTransport()
+
+    transport._validate_financial_period(
+        year=2026,
+        period=2,
+        actual_period_end="31.07.2026",
+        previous_period_end="31.07.2025",
+    )
+
+def test_validate_financial_period_accepts_non_calendar_full_year() -> None:
+    transport = KapHttpFinancialTransport()
+
+    transport._validate_financial_period(
+        year=2025,
+        period=4,
+        actual_period_end="31.01.2026",
+        previous_period_end="31.01.2025",
+    )
+
+def test_validate_financial_period_rejects_mismatched_year() -> None:
     transport = KapHttpFinancialTransport()
 
     with pytest.raises(
         RuntimeError,
         match=(
             "Financial report period mismatch: "
-            "expected 30.06.2026, got 31.03.2026"
+            "expected year 2026, got 31.03.2025"
         ),
     ):
         transport._validate_financial_period(
             year=2026,
             period=2,
-            actual_period_end="31.03.2026",
+            actual_period_end="31.03.2025",
         )
 
 def test_fetch_report_validates_selected_financial_period() -> None:
@@ -1067,8 +1087,8 @@ def test_fetch_report_validates_selected_financial_period() -> None:
     transport._build_report = (
         lambda html: {
             "scale_text": "1.000 TL",
-            "period_end": "31.03.2026",
-            "previous_period_end": "31.03.2025",
+            "period_end": "30.06.2025",
+            "previous_period_end": "30.06.2024",
             "rows": {},
         }
     )
@@ -1077,7 +1097,7 @@ def test_fetch_report_validates_selected_financial_period() -> None:
         RuntimeError,
         match=(
             "Financial report period mismatch: "
-            "expected 30.06.2026, got 31.03.2026"
+            "expected year 2026, got 30.06.2025"
         ),
     ):
         transport.fetch_report(

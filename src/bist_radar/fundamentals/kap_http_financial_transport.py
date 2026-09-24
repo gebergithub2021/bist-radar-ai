@@ -260,6 +260,7 @@ class KapHttpFinancialTransport:
             year=int(selected["year"]),
             period=int(selected["period"]),
             actual_period_end=report["period_end"],
+            previous_period_end=report["previous_period_end"],
         )
 
         return report
@@ -296,6 +297,7 @@ class KapHttpFinancialTransport:
             year=year,
             period=period,
             actual_period_end=report["period_end"],
+            previous_period_end=report["previous_period_end"],
         )
 
         return report
@@ -575,17 +577,43 @@ class KapHttpFinancialTransport:
         year: int,
         period: int,
         actual_period_end: str,
+        previous_period_end: str | None = None,
     ) -> None:
-        """Validate that the fetched report matches the selected KAP period."""
+        """Validate consistency of the selected KAP financial period."""
 
-        expected_period_end = self._financial_period_end(
-            year=year,
-            period=period,
-        )
+        del period
 
-        if actual_period_end != expected_period_end:
+        actual_parts = actual_period_end.split(".")
+
+        if len(actual_parts) != 3:
             raise RuntimeError(
                 "Financial report period mismatch: "
-                f"expected {expected_period_end}, "
-                f"got {actual_period_end}"
+                f"invalid period end {actual_period_end}"
             )
+
+        actual_year = int(actual_parts[2])
+
+        # Calendar-year and interim reports normally end in the
+        # KAP metadata year.
+        if actual_year == year:
+            return
+
+        # A non-calendar fiscal year can close in the following
+        # calendar year. Example:
+        # KAP year=2025 -> 31.01.2026, with comparable 31.01.2025.
+        if previous_period_end is not None:
+            previous_parts = previous_period_end.split(".")
+
+            if (
+                len(previous_parts) == 3
+                and actual_parts[:2] == previous_parts[:2]
+                and actual_year == year + 1
+                and int(previous_parts[2]) == year
+            ):
+                return
+
+        raise RuntimeError(
+            "Financial report period mismatch: "
+            f"expected year {year}, "
+            f"got {actual_period_end}"
+        )
