@@ -355,6 +355,7 @@ def fundamentals(
         "symbol": snapshot.symbol,
         "revenue": snapshot.revenue,
         "net_income": snapshot.net_income,
+        "ttm_net_income": snapshot.ttm_net_income,
         "total_assets": snapshot.total_assets,
         "total_equity": snapshot.total_equity,
         "total_debt": snapshot.total_debt,
@@ -365,10 +366,19 @@ def fundamentals(
         "previous_period_end": snapshot.previous_period_end,
         "analysis": {
             "roe": analysis.roe,
+            "roe_ttm": analysis.roe_ttm,
             "net_margin": analysis.net_margin,
             "revenue_growth": analysis.revenue_growth,
             "net_income_growth": analysis.net_income_growth,
+            "interest_income_growth": (
+                analysis.interest_income_growth
+            ),
             "debt_to_equity": analysis.debt_to_equity,
             "net_debt": analysis.net_debt,
+            "fundamental_score": (
+                calculate_fundamental_score(
+                    analysis
+                )
+            ),
         },
     }

@@ -26,6 +26,7 @@ class FakeFundamentalProvider:
             previous_net_income=8_468_992_000.0,
             period_end="30.06.2026",
             previous_period_end="30.06.2025",
+            ttm_net_income=35_898_569_000.0,
         )
 
 
@@ -59,6 +60,7 @@ def test_fundamentals_endpoint_returns_snapshot() -> None:
         assert result["symbol"] == "ASELS"
         assert result["revenue"] == 88_494_252_000.0
         assert result["net_income"] == 14_449_834_000.0
+        assert result["ttm_net_income"] == 35_898_569_000.0
         assert result["total_debt"] == 73_293_290_000.0
         assert result["cash"] == 39_468_926_000.0
 
@@ -101,11 +103,14 @@ def test_fundamentals_endpoint_returns_analysis() -> None:
         analysis = result["analysis"]
 
         assert analysis["roe"] is not None
+        assert analysis["roe_ttm"] is not None
         assert analysis["net_margin"] is not None
         assert analysis["revenue_growth"] is not None
         assert analysis["net_income_growth"] is not None
+        assert analysis["interest_income_growth"] is None
         assert analysis["debt_to_equity"] is not None
         assert analysis["net_debt"] is not None
+        assert analysis["fundamental_score"] is not None
     finally:
         if original_override is None:
             app.dependency_overrides.pop(
