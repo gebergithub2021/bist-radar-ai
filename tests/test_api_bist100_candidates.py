@@ -255,6 +255,61 @@ def test_bist100_analysis_returns_technical_and_fundamental_data() -> None:
 
         assert result["technical"]["symbol"] == "ASELS"
         assert result["technical"]["score"] == 90
+        assert set(result["technical"]) == {
+            "symbol",
+            "score",
+            "rating",
+            "technical",
+            "scores",
+            "kap",
+        }
+
+        assert set(result["technical"]["technical"]) == {
+            "close",
+            "sma20",
+            "rsi14",
+            "macd",
+            "signal",
+            "histogram",
+            "volume_ratio",
+            "volume_confirms_trend",
+            "momentum5",
+            "momentum20",
+            "above_ema20",
+            "ema_above_sma20",
+            "position_52w",
+            "high_52w_distance",
+            "atr14",
+            "atr_percent",
+            "adx14",
+        }
+
+        assert set(result["technical"]["scores"]) == {
+            "sma",
+            "rsi",
+            "macd",
+            "total",
+        }
+
+        assert set(result["technical"]["kap"]) == {
+            "has_news",
+            "importance",
+            "title",
+            "url",
+        }
+
+        assert set(result["fundamental"]) == {
+            "symbol",
+            "roe",
+            "roe_ttm",
+            "net_margin",
+            "revenue_growth",
+            "net_income_growth",
+            "interest_income_growth",
+            "debt_to_equity",
+            "net_debt",
+            "fundamental_score",
+        }
 
         assert result["fundamental"] == {
             "symbol": "ASELS",
