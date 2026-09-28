@@ -426,6 +426,8 @@ class KapHttpFinancialTransport:
         xbrl_codes = [
             "ifrs-full_Revenue",
             "ifrs-full_ProfitLoss",
+            "ifrs-full_ProfitLossFromOperatingActivities",
+            "ifrs-full_AdjustmentsForDepreciationAndAmortisationExpense",
             "ifrs-full_Assets",
             "ifrs-full_Equity",
             "kap-fr_CurrentBorowings",

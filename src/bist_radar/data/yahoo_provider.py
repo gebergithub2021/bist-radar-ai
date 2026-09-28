@@ -25,6 +25,34 @@ class YahooFinanceProvider(MarketDataProvider):
     def get_symbols(self) -> list[str]:
         raise NotImplementedError("Yahoo provider does not supply symbol lists.")
 
+    def get_market_cap(
+        self,
+        symbol: str,
+    ) -> float | None:
+        """Return current market capitalization for a symbol."""
+
+        yahoo_symbol = self._normalize_symbol(symbol)
+
+        try:
+            ticker = yf.Ticker(yahoo_symbol)
+
+            market_cap = ticker.fast_info.get(
+            "marketCap"
+            )
+
+            if market_cap is None:
+                market_cap = ticker.info.get(
+                "marketCap"
+            )
+
+            if market_cap is None:
+                return None
+
+            return float(market_cap)
+
+        except Exception:
+            return None
+
     def get_history(
     self,
     symbol: str,

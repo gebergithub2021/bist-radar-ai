@@ -18,7 +18,13 @@ from bist_radar.api.bist100_scan_service import (
     build_bist100_candidates, build_bist100_candidate_analysis,
 )
 from bist_radar.fundamentals.provider import FundamentalProvider
-from bist_radar.fundamentals.analysis import analyze_fundamentals
+from bist_radar.fundamentals.analysis import (
+    analyze_fundamentals,
+    calculate_pe_ratio,
+    calculate_price_to_book,
+    calculate_ev_to_sales,
+    calculate_ev_to_ebitda,
+)
 import requests
 
 from bist_radar.fundamentals.kap_financial_client import (
@@ -52,6 +58,11 @@ def get_scanner_engine() -> ScannerEngine:
     return ScannerEngine(
         provider=provider,
     )
+
+def get_scanner_market_provider() -> YahooFinanceProvider:
+    """Return Yahoo Finance market data provider."""
+
+    return YahooFinanceProvider()
 
 
 def get_kap_enricher() -> KapEnricher | None:
@@ -328,8 +339,11 @@ def fundamentals(
     symbol: str,
     provider: FundamentalProvider = Depends(
         get_fundamental_provider
-    ),
-) -> dict[str, object]:
+        ),
+        market_provider: YahooFinanceProvider = Depends(
+            get_scanner_market_provider
+        ),
+    ) -> dict[str, object]:
     """Return fundamental snapshot and analysis for a stock."""
 
     parsed_symbol = symbol.strip().upper()
@@ -351,11 +365,38 @@ def fundamentals(
         snapshot=snapshot,
     )
 
+    market_cap = market_provider.get_market_cap(
+        parsed_symbol
+    )
+
+    pe_ratio = calculate_pe_ratio(
+        market_cap=market_cap,
+        ttm_net_income=snapshot.ttm_net_income,
+    )
+
+    price_to_book = calculate_price_to_book(
+        market_cap=market_cap,
+        total_equity=snapshot.total_equity,
+    )
+
+    ev_to_sales = calculate_ev_to_sales(
+        market_cap=market_cap,
+        net_debt=analysis.net_debt,
+        revenue=snapshot.revenue,
+    )
+
+    ev_to_ebitda = calculate_ev_to_ebitda(
+        market_cap=market_cap,
+        net_debt=analysis.net_debt,
+        ttm_ebitda=snapshot.ttm_ebitda,
+    )
+
     return {
         "symbol": snapshot.symbol,
         "revenue": snapshot.revenue,
         "net_income": snapshot.net_income,
         "ttm_net_income": snapshot.ttm_net_income,
+        "ttm_ebitda": snapshot.ttm_ebitda,
         "total_assets": snapshot.total_assets,
         "total_equity": snapshot.total_equity,
         "total_debt": snapshot.total_debt,
@@ -364,6 +405,13 @@ def fundamentals(
         "previous_net_income": snapshot.previous_net_income,
         "period_end": snapshot.period_end,
         "previous_period_end": snapshot.previous_period_end,
+        "valuation": {
+            "market_cap": market_cap,
+            "pe_ratio": pe_ratio,
+            "price_to_book": price_to_book,
+            "ev_to_sales": ev_to_sales,
+            "ev_to_ebitda": ev_to_ebitda,
+        },
         "analysis": {
             "roe": analysis.roe,
             "roe_ttm": analysis.roe_ttm,

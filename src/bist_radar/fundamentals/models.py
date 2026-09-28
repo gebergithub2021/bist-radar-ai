@@ -21,6 +21,11 @@ class FundamentalSnapshot:
     interest_income: float | None = None
     previous_interest_income: float | None = None
     ttm_net_income: float | None = None
+    operating_profit: float | None = None
+    previous_operating_profit: float | None = None
+    depreciation_amortization: float | None = None
+    previous_depreciation_amortization: float | None = None
+    ttm_ebitda: float | None = None
 
 @dataclass
 class FundamentalAnalysisResult:

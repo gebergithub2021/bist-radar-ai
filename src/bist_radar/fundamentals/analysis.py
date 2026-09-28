@@ -57,6 +57,76 @@ def calculate_net_debt(
 
     return total_debt - cash
 
+def calculate_pe_ratio(
+    market_cap: float | None,
+    ttm_net_income: float | None,
+) -> float | None:
+    """Calculate price-to-earnings ratio."""
+
+    if market_cap is None:
+        return None
+
+    if ttm_net_income is None or ttm_net_income <= 0:
+        return None
+
+    return market_cap / ttm_net_income
+
+
+def calculate_price_to_book(
+    market_cap: float | None,
+    total_equity: float | None,
+) -> float | None:
+    """Calculate price-to-book ratio."""
+
+    if market_cap is None:
+        return None
+
+    if total_equity is None or total_equity <= 0:
+        return None
+
+    return market_cap / total_equity
+
+
+def calculate_ev_to_sales(
+    market_cap: float | None,
+    net_debt: float | None,
+    revenue: float | None,
+) -> float | None:
+    """Calculate enterprise-value-to-sales ratio."""
+
+    if market_cap is None:
+        return None
+
+    if net_debt is None:
+        return None
+
+    if revenue is None or revenue <= 0:
+        return None
+
+    enterprise_value = market_cap + net_debt
+
+    return enterprise_value / revenue
+
+def calculate_ev_to_ebitda(
+    market_cap: float | None,
+    net_debt: float | None,
+    ttm_ebitda: float | None,
+) -> float | None:
+    """Calculate enterprise value to TTM EBITDA ratio."""
+
+    if market_cap is None:
+        return None
+
+    if net_debt is None:
+        return None
+
+    if ttm_ebitda is None or ttm_ebitda <= 0:
+        return None
+
+    enterprise_value = market_cap + net_debt
+
+    return enterprise_value / ttm_ebitda
+
 def calculate_growth_rate(
     current_value: float | None,
     previous_value: float | None,
