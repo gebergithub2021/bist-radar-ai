@@ -47,3 +47,53 @@ def validate_strategy(strategy: StrategyDefinition) -> None:
             raise ValueError("Condition value must be a finite number.")
 
     visit(strategy.rules, 1)
+
+
+def validate_scannable_strategy(
+    strategy: StrategyDefinition,
+) -> None:
+    """Validate that all strategy metrics have scan data."""
+
+    from bist_radar.models.scan_result import ScanResult
+    from bist_radar.strategies.metric_adapter import (
+        scan_result_to_metrics,
+    )
+
+    validate_strategy(strategy)
+
+    sample = ScanResult(
+        symbol="SAMPLE",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+    )
+
+    supported_metrics = set(
+        scan_result_to_metrics(sample)
+    )
+
+    def check_rule(
+        rule: Condition | RuleGroup,
+    ) -> None:
+        if isinstance(rule, RuleGroup):
+            for child in rule.children:
+                check_rule(child)
+            return
+
+        if rule.metric not in supported_metrics:
+            raise ValueError(
+                f"Metric not available for scanning: "
+                f"{rule.metric}"
+            )
+
+        if (
+            rule.compare_to is not None
+            and rule.compare_to not in supported_metrics
+        ):
+            raise ValueError(
+                f"Comparison metric not available "
+                f"for scanning: {rule.compare_to}"
+            )
+
+    check_rule(strategy.rules)
+

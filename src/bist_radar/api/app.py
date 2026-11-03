@@ -430,3 +430,116 @@ def fundamentals(
             ),
         },
     }
+
+
+@app.get("/strategies/metrics")
+def strategy_metrics() -> dict[str, object]:
+    """Return technical metrics available for strategy scanning."""
+
+    from bist_radar.strategies.registry import (
+        TECHNICAL_METRICS,
+    )
+    from bist_radar.models.scan_result import ScanResult
+    from bist_radar.strategies.metric_adapter import (
+        scan_result_to_metrics,
+    )
+
+    sample = ScanResult(
+        symbol="SAMPLE",
+        above_sma20=False,
+        rsi_above_50=False,
+        macd_bullish=False,
+    )
+
+    available_metrics = scan_result_to_metrics(sample)
+
+    technical = sorted(
+        metric
+        for metric in TECHNICAL_METRICS
+        if metric in available_metrics
+    )
+
+    return {
+        "technical": technical,
+        "fundamental": [],
+    }
+
+from bist_radar.api.strategy_models import (
+    StrategyRequest,
+    to_strategy_definition,
+)
+from bist_radar.strategies.validator import (
+    validate_strategy,
+)
+
+
+@app.post("/strategies/validate")
+def validate_user_strategy(
+    request: StrategyRequest,
+) -> dict[str, object]:
+    """Validate a user-defined strategy."""
+
+    strategy = to_strategy_definition(request)
+
+    try:
+        validate_strategy(strategy)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc
+
+    return {
+        "valid": True,
+        "name": strategy.name,
+        "universe": strategy.universe,
+    }
+
+from bist_radar.strategies.strategy_scan_service import (
+    scan_bist100_with_strategy,
+)
+from bist_radar.strategies.validator import (
+    validate_scannable_strategy,
+)
+
+
+@app.post("/strategies/scans")
+def run_strategy_scan(
+    request: StrategyRequest,
+    engine: ScannerEngine = Depends(get_scanner_engine),
+) -> dict[str, object]:
+    """Scan BIST 100 using a user-defined strategy."""
+
+    strategy = to_strategy_definition(request)
+
+    try:
+        validate_scannable_strategy(strategy)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail=str(exc),
+        ) from exc
+
+    try:
+        matches = scan_bist100_with_strategy(
+            strategy=strategy,
+            engine=engine,
+        )
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Market data service is temporarily unavailable.",
+        ) from exc
+
+    return {
+        "strategy": strategy.name,
+        "universe": strategy.universe,
+        "count": len(matches),
+        "results": [
+            {
+                "symbol": match.symbol,
+                "status": match.evaluation.status.value,
+            }
+            for match in matches
+        ],
+    }
