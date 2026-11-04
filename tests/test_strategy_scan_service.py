@@ -172,3 +172,48 @@ def test_bist100_strategy_scans_without_score_filter():
 
     mock_scan.assert_called_once()
     assert mock_scan.call_args.kwargs["kap_enricher"] is None
+
+from bist_radar.strategies.models import MatchStatus
+from bist_radar.strategies.strategy_scan_service import (
+    scan_with_strategy_report,
+)
+
+
+def test_strategy_scan_report_separates_match_and_unknown():
+    strategy = StrategyDefinition(
+        name="RSI Stratejisi",
+        rules=RuleGroup(
+            operator=LogicOperator.AND,
+            children=(
+                Condition(
+                    metric="rsi14",
+                    operator=ComparisonOperator.GT,
+                    value=55,
+                ),
+            ),
+        ),
+    )
+
+    stocks = [
+        ("THYAO", {"rsi14": 62}),
+        ("ASELS", {"rsi14": 48}),
+        ("TUPRS", {"rsi14": None}),
+    ]
+
+    report = scan_with_strategy_report(
+        strategy=strategy,
+        stocks=stocks,
+    )
+
+    assert len(report.matches) == 1
+    assert report.matches[0].symbol == "THYAO"
+    assert report.matches[0].evaluation.status == MatchStatus.MATCH
+
+    assert len(report.unknown) == 1
+    assert report.unknown[0].symbol == "TUPRS"
+    assert report.unknown[0].evaluation.status == MatchStatus.UNKNOWN
+
+    assert all(
+        result.symbol != "ASELS"
+        for result in (*report.matches, *report.unknown)
+    )

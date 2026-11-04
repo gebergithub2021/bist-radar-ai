@@ -4,6 +4,7 @@
 from fastapi.testclient import TestClient
 
 from bist_radar.api.app import app
+from bist_radar.strategies.strategy_scan_service import StrategyScanReport
 
 
 client = TestClient(app)
@@ -178,8 +179,11 @@ def test_strategy_scan_endpoint_returns_matches():
     ]
 
     with patch(
-        "bist_radar.api.app.scan_bist100_with_strategy",
-        return_value=fake_matches,
+        "bist_radar.api.app.scan_bist100_with_strategy_report",
+        return_value=StrategyScanReport(
+        matches=tuple(fake_matches),
+        unknown=(),
+        ),
     ) as mock_scan:
         response = client.post(
             "/strategies/scans",
@@ -195,8 +199,11 @@ def test_strategy_scan_endpoint_returns_matches():
             {
                 "symbol": "THYAO",
                 "status": "MATCH",
+                "conditions": [],
             },
         ],
+        "unknown_count": 0,
+        "unknown_results": [],
     }
 
     mock_scan.assert_called_once()
@@ -217,7 +224,7 @@ def test_strategy_scan_rejects_unavailable_metric():
     }
 
     with patch(
-        "bist_radar.api.app.scan_bist100_with_strategy"
+        "bist_radar.api.app.scan_bist100_with_strategy_report"
     ) as mock_scan:
         response = client.post(
             "/strategies/scans",
@@ -231,3 +238,148 @@ def test_strategy_scan_rejects_unavailable_metric():
     )
 
     mock_scan.assert_not_called()
+
+
+from bist_radar.strategies.models import (
+    ComparisonOperator,
+    Condition,
+    ConditionResult,
+)
+
+
+def test_strategy_scan_returns_condition_details():
+    payload = {
+        "name": "RSI Stratejisi",
+        "rules": {
+            "operator": "AND",
+            "children": [
+                {
+                    "metric": "rsi14",
+                    "operator": "GT",
+                    "value": 55,
+                },
+            ],
+        },
+    }
+
+    fake_matches = [
+        StockStrategyResult(
+            symbol="THYAO",
+            evaluation=StrategyResult(
+                status=MatchStatus.MATCH,
+                conditions=(
+                    ConditionResult(
+                        condition=Condition(
+                            metric="rsi14",
+                            operator=ComparisonOperator.GT,
+                            value=55,
+                        ),
+                        status=MatchStatus.MATCH,
+                        actual=62.0,
+                        expected=55.0,
+                    ),
+                ),
+            ),
+        ),
+    ]
+
+    with patch(
+        "bist_radar.api.app.scan_bist100_with_strategy_report",
+        return_value=StrategyScanReport(
+        matches=tuple(fake_matches),
+        unknown=(),
+        ),
+    ):
+        response = client.post(
+            "/strategies/scans",
+            json=payload,
+        )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["count"] == 1
+    assert data["results"][0]["symbol"] == "THYAO"
+
+    conditions = data["results"][0]["conditions"]
+
+    assert len(conditions) == 1
+    assert conditions[0] == {
+        "metric": "rsi14",
+        "operator": "GT",
+        "value": 55,
+        "compare_to": None,
+        "actual": 62.0,
+        "expected": 55.0,
+        "status": "MATCH",
+    }
+
+def test_strategy_scan_returns_unknown_results():
+    payload = {
+        "name": "RSI Stratejisi",
+        "rules": {
+            "operator": "AND",
+            "children": [
+                {
+                    "metric": "rsi14",
+                    "operator": "GT",
+                    "value": 55,
+                },
+            ],
+        },
+    }
+
+    fake_unknown = StockStrategyResult(
+        symbol="TUPRS",
+        evaluation=StrategyResult(
+            status=MatchStatus.UNKNOWN,
+            conditions=(
+                ConditionResult(
+                    condition=Condition(
+                        metric="rsi14",
+                        operator=ComparisonOperator.GT,
+                        value=55,
+                    ),
+                    status=MatchStatus.UNKNOWN,
+                    actual=None,
+                    expected=55.0,
+                ),
+            ),
+        ),
+    )
+
+    fake_report = StrategyScanReport(
+        matches=(),
+        unknown=(fake_unknown,),
+    )
+
+    with patch(
+        "bist_radar.api.app.scan_bist100_with_strategy_report",
+        return_value=fake_report,
+    ):
+        response = client.post(
+            "/strategies/scans",
+            json=payload,
+        )
+
+    assert response.status_code == 200
+
+    data = response.json()
+
+    assert data["count"] == 0
+    assert data["results"] == []
+    assert data["unknown_count"] == 1
+
+    unknown_result = data["unknown_results"][0]
+
+    assert unknown_result["symbol"] == "TUPRS"
+    assert unknown_result["status"] == "UNKNOWN"
+
+    condition = unknown_result["conditions"][0]
+
+    assert condition["metric"] == "rsi14"
+    assert condition["actual"] is None
+    assert condition["expected"] == 55.0
+    assert condition["status"] == "UNKNOWN"
+

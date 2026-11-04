@@ -495,9 +495,11 @@ def validate_user_strategy(
         "universe": strategy.universe,
     }
 
+
 from bist_radar.strategies.strategy_scan_service import (
-    scan_bist100_with_strategy,
+    scan_bist100_with_strategy_report,
 )
+
 from bist_radar.strategies.validator import (
     validate_scannable_strategy,
 )
@@ -521,7 +523,7 @@ def run_strategy_scan(
         ) from exc
 
     try:
-        matches = scan_bist100_with_strategy(
+         report = scan_bist100_with_strategy_report(
             strategy=strategy,
             engine=engine,
         )
@@ -530,16 +532,42 @@ def run_strategy_scan(
             status_code=503,
             detail="Market data service is temporarily unavailable.",
         ) from exc
+    matches = report.matches
+    unknown = report.unknown
+           
+    
+    def serialize_result(match):
+        return {
+            "symbol": match.symbol,
+            "status": match.evaluation.status.value,
+            "conditions": [
+                {
+                    "metric": condition.condition.metric,
+                    "operator": condition.condition.operator.value,
+                    "value": condition.condition.value,
+                    "compare_to": condition.condition.compare_to,
+                    "actual": condition.actual,
+                    "expected": condition.expected,
+                    "status": condition.status.value,
+                }
+                for condition in match.evaluation.conditions
+            ],
+        }
 
     return {
         "strategy": strategy.name,
         "universe": strategy.universe,
         "count": len(matches),
         "results": [
-            {
-                "symbol": match.symbol,
-                "status": match.evaluation.status.value,
-            }
+            serialize_result(match)
             for match in matches
         ],
+        "unknown_count": len(unknown),
+        "unknown_results": [
+            serialize_result(match)
+            for match in unknown
+        ],
     }
+
+
+
