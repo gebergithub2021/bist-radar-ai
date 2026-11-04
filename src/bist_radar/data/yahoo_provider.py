@@ -67,6 +67,17 @@ class YahooFinanceProvider(MarketDataProvider):
         progress=False,
         auto_adjust=False,
     )
+        if df.empty:
+            return pd.DataFrame(
+                columns=[
+                "Date",
+                "Open",
+                "High",
+                "Low",
+                "Close",
+                "Volume",
+            ]
+        )
         if isinstance(df.columns, pd.MultiIndex):df.columns = df.columns.get_level_values(0)
         df = df.reset_index()
         df = df[

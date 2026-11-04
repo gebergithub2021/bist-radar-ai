@@ -53,6 +53,11 @@ class ScannerEngine:
             start,
             end,
         )
+        
+        if df.empty:
+            raise RuntimeError(
+            f"{symbol} için fiyat verisi bulunamadı."
+        )
 
         df = add_indicators(df)
 
