@@ -4,6 +4,8 @@ from datetime import date
 import pandas as pd
 
 from bist_radar.data.price_cache import PriceCache
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 def test_price_cache_save_and_load(tmp_path):
@@ -909,3 +911,232 @@ def test_price_cache_counts_today_after_market_close(tmp_path):
     )
 
     assert result == 1
+
+def test_price_cache_market_closed_matches_istanbul_time(monkeypatch):
+    """Check market close using a fixed Istanbul time."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from bist_radar.data.price_cache import PriceCache
+
+    istanbul = ZoneInfo("Europe/Istanbul")
+
+    before_close = datetime(2026, 11, 18, 14, 0, tzinfo=istanbul)
+    after_close = datetime(2026, 11, 18, 18, 10, tzinfo=istanbul)
+
+    monkeypatch.setattr(
+        PriceCache,
+        "get_istanbul_now",
+        staticmethod(lambda: before_close),
+    )
+    assert PriceCache.is_market_closed() is False
+
+    monkeypatch.setattr(
+        PriceCache,
+        "get_istanbul_now",
+        staticmethod(lambda: after_close),
+    )
+    assert PriceCache.is_market_closed() is True
+
+def test_price_cache_auto_detects_market_before_close(tmp_path, monkeypatch):
+    """Automatically exclude today when the market has not closed."""
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 13)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    fake_now = datetime(
+        2026, 11, 16, 14, 0,
+        tzinfo=ZoneInfo("Europe/Istanbul"),
+    )
+
+    monkeypatch.setattr(
+        cache,
+        "get_istanbul_now",
+        lambda: fake_now,
+    )
+
+    monkeypatch.setattr(
+        cache,
+        "is_market_closed",
+        lambda: False,
+    )
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 16),
+    )
+
+    assert result == 0
+
+def test_price_cache_auto_detects_market_after_close(tmp_path, monkeypatch):
+    """Automatically count today when the market has closed."""
+    from datetime import date
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 13)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    monkeypatch.setattr(
+        cache,
+        "is_market_closed",
+        lambda: True,
+    )
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 16),
+    )
+
+    assert result == 1
+
+def test_price_cache_past_date_is_treated_as_closed(tmp_path, monkeypatch):
+    """Past trading dates should be treated as closed."""
+    from datetime import date, datetime
+    from zoneinfo import ZoneInfo
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 13)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    fake_now = datetime(
+        2026, 11, 18, 14, 0,
+        tzinfo=ZoneInfo("Europe/Istanbul"),
+    )
+
+    monkeypatch.setattr(
+        cache,
+        "get_istanbul_now",
+        lambda: fake_now,
+    )
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 16),
+    )
+
+    assert result == 1
+
+def test_price_cache_future_date_is_not_treated_as_closed(tmp_path, monkeypatch):
+    """Do not treat a future date as a closed trading day."""
+    from datetime import date, datetime
+    from zoneinfo import ZoneInfo
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 18)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    fake_now = datetime(
+        2026, 11, 18, 19, 0,
+        tzinfo=ZoneInfo("Europe/Istanbul"),
+    )
+
+    monkeypatch.setattr(
+        cache,
+        "get_istanbul_now",
+        lambda: fake_now,
+    )
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 19),
+    )
+
+    assert result == 0
+
+def test_price_cache_does_not_count_distant_future_days(tmp_path, monkeypatch):
+    """Exclude future trading days from automatic staleness."""
+    from datetime import date, datetime
+    from zoneinfo import ZoneInfo
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 18)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    fake_now = datetime(
+        2026, 11, 18, 19, 0,
+        tzinfo=ZoneInfo("Europe/Istanbul"),
+    )
+
+    monkeypatch.setattr(
+        cache,
+        "get_istanbul_now",
+        lambda: fake_now,
+    )
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 25),
+    )
+
+    assert result == 0

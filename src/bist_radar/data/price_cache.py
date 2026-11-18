@@ -2,13 +2,26 @@
 from pathlib import Path
 
 import pandas as pd
-from datetime import date
+from datetime import date, datetime, time
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 from bist_radar.data.trading_calendar import BISTTradingCalendar
 
 
 class PriceCache:
     """Store daily stock prices and volumes on disk."""
+
+    @staticmethod
+    def get_istanbul_now() -> datetime:
+        """Return the current date and time in Istanbul."""
+        return datetime.now(ZoneInfo("Europe/Istanbul"))
+    
+    @staticmethod
+    def is_market_closed() -> bool:
+        """Check whether the regular BIST trading session has ended."""
+        now = PriceCache.get_istanbul_now()
+        return now.time() >= time(18, 10)
+
 
     
     def __init__(self, cache_dir: str = ".cache/prices") -> None:
@@ -101,7 +114,7 @@ class PriceCache:
         self,
         symbol: str,
         as_of: date,
-        market_closed: bool = True,
+        market_closed: bool | None = None,
     ) -> int | None:
         """Count trading days since the latest cached price."""
 
@@ -111,6 +124,19 @@ class PriceCache:
             return None
 
         last_cached_date = bounds[1]
+
+        
+        if market_closed is None:
+            today = self.get_istanbul_now().date()
+
+            if as_of < today:
+                market_closed = True
+            elif as_of > today:
+                as_of = today
+                market_closed = self.is_market_closed()
+            else:
+                market_closed = self.is_market_closed()
+
 
         if last_cached_date >= as_of:
             return 0
