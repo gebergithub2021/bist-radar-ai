@@ -712,3 +712,138 @@ def test_yahoo_provider_skips_download_after_cache_filled(
     assert second_result["Close"].tolist() == [
         307, 309, 315
     ]
+
+def test_price_cache_counts_stale_trading_days(tmp_path):
+    """Count trading days since the latest cached price."""
+    from datetime import date
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 13)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 18),
+    )
+
+    assert result == 3
+
+def test_price_cache_does_not_count_weekends_as_stale(tmp_path):
+    """Weekend days should not increase stale trading days."""
+    from datetime import date
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 13)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 15),
+    )
+
+    assert result == 0
+
+def test_price_cache_does_not_count_bist_holiday_as_stale(tmp_path):
+    """BIST holidays should not increase stale trading days."""
+    from datetime import date
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 10, 28)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 10, 30),
+    )
+
+    assert result == 1
+
+def test_price_cache_staleness_returns_none_when_empty(tmp_path):
+    """Return None when no cached prices exist."""
+    from datetime import date
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 18),
+    )
+
+    assert result is None
+
+def test_price_cache_staleness_is_zero_when_current(tmp_path):
+    """Return zero when the latest cached date matches as_of."""
+    from datetime import date
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 18)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 18),
+    )
+
+    assert result == 0

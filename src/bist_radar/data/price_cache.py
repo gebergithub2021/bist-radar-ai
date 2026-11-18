@@ -97,6 +97,30 @@ class PriceCache:
         )
 
 
+    def get_stale_trading_days(
+        self,
+        symbol: str,
+        as_of: date,
+    ) -> int | None:
+        """Count trading days since the latest cached price."""
+
+        bounds = self.get_date_bounds(symbol)
+
+        if bounds is None:
+            return None
+
+        last_cached_date = bounds[1]
+
+        if last_cached_date >= as_of:
+            return 0
+
+        trading_days = self.trading_calendar.get_trading_days(
+            start=last_cached_date + pd.Timedelta(days=1),
+            end=as_of + pd.Timedelta(days=1),
+        )
+
+        return len(trading_days)
+
     def get_missing_ranges(
         self,
         symbol: str,
