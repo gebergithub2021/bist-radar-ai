@@ -282,3 +282,66 @@ def test_get_scan_results_skips_symbol_when_provider_fails():
         "THYAO",
         "ASELS",
     ]
+
+
+
+def test_scanner_calculates_indicators_from_cached_prices(
+    tmp_path,
+    monkeypatch,
+):
+
+    """Scanner should calculate indicators from cached OHLCV data."""
+
+    from datetime import date, timedelta
+
+    from bist_radar.data.yahoo_provider import YahooFinanceProvider
+
+    provider = YahooFinanceProvider(
+        cache_dir=str(tmp_path),
+    )
+
+    start = date(2026, 1, 5)
+    dates = pd.bdate_range(
+        start=start,
+        periods=60,
+    )
+
+    close = [100.0 + i for i in range(len(dates))]
+
+    prices = pd.DataFrame(
+        {
+            "Date": dates,
+            "Open": close,
+            "High": [value + 1 for value in close],
+            "Low": [value - 1 for value in close],
+            "Close": close,
+            "Volume": [1000] * len(dates),
+        }
+    )
+
+    provider.price_cache.save("TEST", prices)
+
+
+    def forbid_download(*args, **kwargs):
+        raise AssertionError(
+            "Yahoo download should not be called"
+        )
+
+    monkeypatch.setattr(
+        "bist_radar.data.yahoo_provider.yf.download",
+        forbid_download,
+    )
+
+
+    engine = ScannerEngine(provider)
+
+    result = engine.get_scan_result(
+        symbol="TEST",
+        start=start,
+        end=(dates[-1] + timedelta(days=1)).date(),
+    )
+
+    assert result.symbol == "TEST"
+    assert result.sma20 > 0
+    assert 0 <= result.rsi14 <= 100
+    assert pd.notna(result.macd)
