@@ -101,6 +101,7 @@ class PriceCache:
         self,
         symbol: str,
         as_of: date,
+        market_closed: bool = True,
     ) -> int | None:
         """Count trading days since the latest cached price."""
 
@@ -114,9 +115,11 @@ class PriceCache:
         if last_cached_date >= as_of:
             return 0
 
+        end_date = as_of + pd.Timedelta(days=1) if market_closed else as_of
+
         trading_days = self.trading_calendar.get_trading_days(
             start=last_cached_date + pd.Timedelta(days=1),
-            end=as_of + pd.Timedelta(days=1),
+            end=end_date,
         )
 
         return len(trading_days)

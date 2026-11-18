@@ -847,3 +847,65 @@ def test_price_cache_staleness_is_zero_when_current(tmp_path):
     )
 
     assert result == 0
+
+def test_price_cache_does_not_count_today_before_market_close(tmp_path):
+    """Do not count today's trading day before market close."""
+    from datetime import date
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 13)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 16),
+        market_closed=False,
+    )
+
+    assert result == 0
+
+def test_price_cache_counts_today_after_market_close(tmp_path):
+    """Count today's trading day after market close."""
+    from datetime import date
+
+    import pandas as pd
+
+    from bist_radar.data.price_cache import PriceCache
+
+    cache = PriceCache(cache_dir=str(tmp_path))
+
+    prices = pd.DataFrame(
+        {
+            "Date": [date(2026, 11, 13)],
+            "Open": [100.0],
+            "High": [102.0],
+            "Low": [99.0],
+            "Close": [101.0],
+            "Volume": [1000],
+        }
+    )
+
+    cache.save("TEST", prices)
+
+    result = cache.get_stale_trading_days(
+        symbol="TEST",
+        as_of=date(2026, 11, 16),
+        market_closed=True,
+    )
+
+    assert result == 1
